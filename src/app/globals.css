@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: #2563EB;
+  --color-primary-dark: #1D4ED8;
+  --color-secondary: #F97316;
+  --color-accent: #FACC15;
+  --color-success: #22C55E;
+  --color-danger: #EF4444;
+  --color-purple: #8B5CF6;
+  --color-cyan: #06B6D4;
+  --color-pink: #EC4899;
+  --color-bg: #FAFAF8;
+  --color-surface: #F3F4F6;
+  --color-text: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-border: #E5E7EB;
+  --font-heading: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+  --font-body: 'Noto Sans JP', sans-serif;
+  --font-price: 'Inter', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: 1.8;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  line-height: 1.4;
+}
