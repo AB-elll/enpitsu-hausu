@@ -18,6 +18,7 @@ export default function SealPage() {
         description="お名前シールから業務用ラベルまで。型抜き・シートタイプも豊富にラインナップ。"
         color="#F97316"
         icon="🏷️"
+        image="/images/category-seal.jpg"
       />
       <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {SEAL_PRODUCTS.map((product) => (

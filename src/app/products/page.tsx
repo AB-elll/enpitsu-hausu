@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import BreadcrumbNav from '@/components/BreadcrumbNav';
 import { CATEGORIES } from '@/lib/constants';
 import type { Metadata } from 'next';
@@ -27,9 +28,15 @@ export default function ProductsPage() {
             href={cat.href}
             className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
           >
-            {/* Color Header */}
-            <div className="h-40 flex items-center justify-center relative" style={{ backgroundColor: cat.color }}>
-              <span className="text-7xl opacity-80">{cat.icon}</span>
+            {/* Category Image */}
+            <div className="relative h-48 w-full">
+              <Image
+                src={cat.image}
+                alt={cat.name}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
             </div>
             <div className="p-6">

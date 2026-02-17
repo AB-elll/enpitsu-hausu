@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import HeroSection from '@/components/HeroSection';
 import { CATEGORIES } from '@/lib/constants';
 
@@ -24,11 +25,15 @@ export default function HomePage() {
                 href={cat.href}
                 className="group relative bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
               >
-                <div
-                  className="absolute top-0 left-0 w-full h-1 transition-all duration-300 group-hover:h-1.5"
-                  style={{ backgroundColor: cat.color }}
-                />
-                <div className="text-5xl mb-4">{cat.icon}</div>
+                <div className="relative w-full h-40 mb-4 rounded-xl overflow-hidden">
+                  <Image
+                    src={cat.image}
+                    alt={cat.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  />
+                </div>
                 <h3 className="text-xl font-bold text-text mb-2 group-hover:text-primary transition-colors">
                   {cat.name}
                 </h3>

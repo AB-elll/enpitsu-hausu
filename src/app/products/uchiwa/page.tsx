@@ -18,6 +18,7 @@ export default function UchiwaPage() {
         description="夏のイベントや販促に最適。紙・竹・ポリ・変形うちわ、上品な扇子まで幅広くラインナップ。"
         color="#22C55E"
         icon="🪭"
+        image="/images/category-uchiwa.jpg"
       />
       <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {UCHIWA_PRODUCTS.map((product) => (
