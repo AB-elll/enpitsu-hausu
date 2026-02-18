@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { quickQuestions, faqData, findAnswer } from '@/lib/chatbot-data';
+import { quickQuestions, faqData } from '@/lib/chatbot-data';
 
 interface Message {
   id: string;
@@ -15,8 +15,59 @@ interface ChatApiMessage {
   content: string;
 }
 
-const WELCOME_MESSAGE =
+const WELCOME_MESSAGE_AI =
   'こんにちは！えんぴつはうすへようこそ 🎨\nノベルティ・販促品についてご質問があればお気軽にどうぞ！\n\n下のボタンからよくある質問を選ぶか、自由にメッセージを入力してください。';
+
+const WELCOME_MESSAGE_MOCK =
+  'こんにちは！えんぴつくんです🎨 ノベルティのことならなんでも聞いてね！\n\n下のボタンからよくある質問を選ぶか、自由にメッセージを入力してくださいね✨';
+
+interface MockResponse {
+  keywords: string[];
+  reply: string;
+}
+
+const MOCK_RESPONSES: MockResponse[] = [
+  {
+    keywords: ['商品', 'カレンダー', 'うちわ', 'アクリル', 'グッズ', 'ノベルティ', '販促', 'タオル', 'ボールペン', 'クリアファイル', 'バッグ', 'マグカップ'],
+    reply: 'カレンダーやうちわ、アクリルグッズなど豊富に取り揃えてます！📅 詳しくは[商品ページ](/enpitsu-hausu/products)をチェックしてみてくださいね✨',
+  },
+  {
+    keywords: ['価格', '値段', '見積', 'いくら', '料金', '費用', 'コスト'],
+    reply: 'お見積もりは無料です！💰 [自動見積もりページ](/enpitsu-hausu/estimate)で簡単に確認できますよ✨ お気軽にお試しくださいね！',
+  },
+  {
+    keywords: ['納期', 'いつ届く', '届く', '日数', '急ぎ', '特急', '発送'],
+    reply: '標準納期は商品によって異なりますが、お急ぎの場合は特急対応もできます！🚀 [納期カレンダー](/enpitsu-hausu/delivery)で確認してみてくださいね',
+  },
+  {
+    keywords: ['入稿', 'データ', 'イラレ', 'フォトショ', 'illustrator', 'photoshop', 'ai', 'psd', 'テンプレ', 'デザイン'],
+    reply: '入稿データはIllustrator(.ai)かPhotoshop(.psd)が推奨です！🎨 詳しくは[デザインガイド](/enpitsu-hausu/design-guide)をご覧ください',
+  },
+  {
+    keywords: ['問い合わせ', '連絡', '電話', 'メール', '相談'],
+    reply: 'お問い合わせは[こちらのフォーム](/enpitsu-hausu/contact)からどうぞ！✉️\n📞 お電話でもお気軽に：**03-3745-8421**（平日9:00〜18:00）',
+  },
+  {
+    keywords: ['ありがとう', 'サンキュー', '助かる', '感謝'],
+    reply: 'どういたしまして！😊 他にも気になることがあれば、なんでも聞いてくださいね✨',
+  },
+];
+
+const MOCK_DEFAULT_REPLIES = [
+  'えんぴつくんはまだお勉強中です！📚 近日中にもっと賢くなるので楽しみにしててくださいね！お急ぎの場合は[お問い合わせフォーム](/enpitsu-hausu/contact)からどうぞ✉️',
+  'うーん、ちょっと難しい質問ですね🤔 [お問い合わせフォーム](/enpitsu-hausu/contact)で詳しくご相談いただけると嬉しいです！',
+  'その件はえんぴつくんにはまだ難しいです…📝 でも[お問い合わせ](/enpitsu-hausu/contact)いただければスタッフが丁寧にお答えしますよ！✨',
+];
+
+function getMockResponse(userText: string): string {
+  const lower = userText.toLowerCase();
+  for (const resp of MOCK_RESPONSES) {
+    if (resp.keywords.some((kw) => lower.includes(kw))) {
+      return resp.reply;
+    }
+  }
+  return MOCK_DEFAULT_REPLIES[Math.floor(Math.random() * MOCK_DEFAULT_REPLIES.length)];
+}
 
 const MAX_MESSAGES_PER_SESSION = 50;
 const SESSION_KEY = 'enpitsu-chat-history';
@@ -95,9 +146,7 @@ async function fetchAIResponse(
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 'welcome', role: 'bot', text: WELCOME_MESSAGE, timestamp: new Date() },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -119,8 +168,14 @@ export default function Chatbot() {
   useEffect(() => {
     if (aiAvailable !== null) return;
     fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [] }) })
-      .then((r) => setAiAvailable(r.status !== 404))
-      .catch(() => setAiAvailable(false));
+      .then((r) => {
+        setAiAvailable(r.status !== 404);
+        setMessages([{ id: 'welcome', role: 'bot', text: r.status !== 404 ? WELCOME_MESSAGE_AI : WELCOME_MESSAGE_MOCK, timestamp: new Date() }]);
+      })
+      .catch(() => {
+        setAiAvailable(false);
+        setMessages([{ id: 'welcome', role: 'bot', text: WELCOME_MESSAGE_MOCK, timestamp: new Date() }]);
+      });
   }, [aiAvailable]);
 
   const scrollToBottom = useCallback(() => {
@@ -152,7 +207,7 @@ export default function Chatbot() {
         { id: generateId('bot'), role: 'bot', text, timestamp: new Date() },
       ]);
       setIsTyping(false);
-    }, 500 + Math.random() * 400);
+    }, 1000 + Math.random() * 1000);
   }, []);
 
   const sendToAI = useCallback(async (userText: string) => {
@@ -189,11 +244,7 @@ export default function Chatbot() {
       historyRef.current.push({ role: 'assistant', content: result });
       saveHistory(historyRef.current);
     } else {
-      // Fallback to rule-based
-      const match = findAnswer(userText);
-      const fallbackText = match
-        ? match.answer
-        : 'すみません、ただいまAIアシスタントに接続できません 🙇\n\n[お問い合わせフォーム](/contact) よりお気軽にご連絡ください。\n📞 03-3745-8421（平日9:00〜18:00）';
+      const fallbackText = getMockResponse(userText);
 
       setMessages((prev) => {
         const existing = prev.find((m) => m.id === botMsgId);
@@ -259,15 +310,7 @@ export default function Chatbot() {
     if (aiAvailable) {
       sendToAI(trimmed);
     } else {
-      // Fallback to rule-based
-      const match = findAnswer(trimmed);
-      if (match) {
-        addBotReplyFallback(match.answer);
-      } else {
-        addBotReplyFallback(
-          'すみません、ご質問の内容を特定できませんでした 🙇\n\n詳しくは [お問い合わせフォーム](/contact) よりお気軽にご連絡ください。\n\n📞 お電話でもお気軽にどうぞ：**03-3745-8421**（平日9:00〜18:00）',
-        );
-      }
+      addBotReplyFallback(getMockResponse(trimmed));
     }
   }, [input, isStreaming, aiAvailable, sendToAI, addBotReplyFallback]);
 
