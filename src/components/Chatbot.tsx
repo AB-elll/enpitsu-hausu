@@ -391,8 +391,8 @@ export default function Chatbot() {
         ) : (
           <>
             <span className="rounded-full bg-white px-3 py-1.5 text-sm font-bold text-primary shadow-md">チャットで相談</span>
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg">
-              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/enpitsu-hausu'}/pencil-icon.png`} alt="えんぴつくん" width={40} height={40} className="object-contain" />
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white shadow-lg">
+              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/enpitsu-hausu'}/pencil-icon.png`} alt="えんぴつくん" width={36} height={36} className="object-contain" style={{margin: 'auto'}} />
             </div>
           </>
         )}
