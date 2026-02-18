@@ -9,6 +9,7 @@ interface UnansweredQuestion {
   contactValue: string;
   timestamp: number;
   status: 'pending' | 'in_progress' | 'completed';
+  knowledgeStatus?: 'none' | 'added' | 'individual';
 }
 
 interface KnowledgeEntry {
@@ -44,6 +45,8 @@ export default function InquiriesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [staffAnswers, setStaffAnswers] = useState<Record<string, string>>({});
   const [aiReplies, setAiReplies] = useState<Record<string, string>>({});
+  const [showKnowledgeDialog, setShowKnowledgeDialog] = useState(false);
+  const [selectedInquiry, setSelectedInquiry] = useState<UnansweredQuestion | null>(null);
 
   // データ読み込み
   const loadData = () => {
@@ -68,11 +71,17 @@ export default function InquiriesPage() {
   }, []);
 
   // ステータス更新
-  const updateStatus = (inquiryId: string, newStatus: UnansweredQuestion['status']) => {
+  const updateStatus = (
+    inquiryId: string, 
+    newStatus: UnansweredQuestion['status'],
+    knowledgeStatus?: UnansweredQuestion['knowledgeStatus']
+  ) => {
     try {
       const questions: UnansweredQuestion[] = JSON.parse(localStorage.getItem('enpitsu_unanswered_questions') || '[]');
       const updatedQuestions = questions.map(q => 
-        q.id === inquiryId ? { ...q, status: newStatus } : q
+        q.id === inquiryId 
+          ? { ...q, status: newStatus, ...(knowledgeStatus && { knowledgeStatus }) }
+          : q
       );
       localStorage.setItem('enpitsu_unanswered_questions', JSON.stringify(updatedQuestions));
       setInquiries(updatedQuestions.sort((a, b) => b.timestamp - a.timestamp));
@@ -123,20 +132,28 @@ export default function InquiriesPage() {
     alert('返信を送信しました（モック）');
   };
 
-  // ナレッジに追加
-  const addToKnowledge = (inquiry: UnansweredQuestion) => {
-    const response = responses[inquiry.id];
+  // ナレッジ追加ダイアログを表示
+  const showKnowledgeConfirm = (inquiry: UnansweredQuestion) => {
+    setSelectedInquiry(inquiry);
+    setShowKnowledgeDialog(true);
+  };
+
+  // ナレッジに実際に追加
+  const confirmAddToKnowledge = () => {
+    if (!selectedInquiry) return;
+    
+    const response = responses[selectedInquiry.id];
     if (!response) return;
 
     try {
       const knowledgeBase: KnowledgeEntry[] = JSON.parse(localStorage.getItem('enpitsu_knowledge_base') || '[]');
       
       // 簡単なキーワード抽出（単語を分割）
-      const keywords = inquiry.question.split(/[、。\s\?？！!]/).filter(word => word.length > 1);
+      const keywords = selectedInquiry.question.split(/[、。\s\?？！!]/).filter(word => word.length > 1);
       
       const newEntry: KnowledgeEntry = {
         id: `kb-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        question: inquiry.question,
+        question: selectedInquiry.question,
         answer: response.staffAnswer,
         keywords: keywords,
         timestamp: Date.now()
@@ -145,11 +162,27 @@ export default function InquiriesPage() {
       knowledgeBase.push(newEntry);
       localStorage.setItem('enpitsu_knowledge_base', JSON.stringify(knowledgeBase));
       
+      // ステータスを更新（ナレッジ追加済み）
+      updateStatus(selectedInquiry.id, 'completed', 'added');
+      
+      setShowKnowledgeDialog(false);
+      setSelectedInquiry(null);
       alert('ナレッジベースに追加しました！');
     } catch (error) {
       console.error('ナレッジ追加エラー:', error);
       alert('ナレッジベースへの追加に失敗しました');
     }
+  };
+
+  // 個別対応にする
+  const setIndividualResponse = () => {
+    if (!selectedInquiry) return;
+    
+    // ステータスを更新（個別対応）
+    updateStatus(selectedInquiry.id, 'completed', 'individual');
+    
+    setShowKnowledgeDialog(false);
+    setSelectedInquiry(null);
   };
 
   const formatDate = (timestamp: number) => {
@@ -165,6 +198,51 @@ export default function InquiriesPage() {
   const pendingCount = inquiries.filter(q => q.status === 'pending').length;
   const inProgressCount = inquiries.filter(q => q.status === 'in_progress').length;
   const completedCount = inquiries.filter(q => q.status === 'completed').length;
+
+  // ナレッジ確認ダイアログ
+  const KnowledgeConfirmDialog = () => {
+    if (!showKnowledgeDialog) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg max-w-md w-full mx-4 p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-medium text-[var(--color-text)] mb-2">
+              🤖 ナレッジ追加確認
+            </h3>
+            <p className="text-[var(--color-text-secondary)] text-sm mb-3">
+              この回答をえんぴつくんの知識に追加しますか？
+            </p>
+            <p className="text-[var(--color-text-secondary)] text-sm">
+              次回から同じような質問に自動で回答するようになります
+            </p>
+          </div>
+          
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={confirmAddToKnowledge}
+              className="w-full bg-[var(--color-primary)] text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--color-primary)]/90 transition"
+            >
+              ✨ 追加する（自動回答に活用）
+            </button>
+            <button
+              onClick={setIndividualResponse}
+              className="w-full bg-gray-100 text-[var(--color-text)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+            >
+              📝 今回だけの対応にする
+            </button>
+          </div>
+          
+          <button
+            onClick={() => setShowKnowledgeDialog(false)}
+            className="w-full mt-3 text-[var(--color-text-secondary)] text-sm hover:text-[var(--color-text)] transition"
+          >
+            キャンセル
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -317,7 +395,7 @@ export default function InquiriesPage() {
                                 承認して送信
                               </button>
                               <button
-                                onClick={() => addToKnowledge(inquiry)}
+                                onClick={() => showKnowledgeConfirm(inquiry)}
                                 className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
                               >
                                 ナレッジに追加
@@ -326,15 +404,36 @@ export default function InquiriesPage() {
                           )}
 
                           {inquiry.status === 'completed' && (
-                            <div className="flex items-center gap-2 text-green-600 text-sm">
-                              <span>✓</span>
-                              <span>送信済み（{formatDate(response.timestamp)}）</span>
-                              <button
-                                onClick={() => addToKnowledge(inquiry)}
-                                className="ml-auto bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
-                              >
-                                ナレッジに追加
-                              </button>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-green-600 text-sm">
+                                <span>✓</span>
+                                <span>送信済み（{formatDate(response.timestamp)}）</span>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                {inquiry.knowledgeStatus === 'added' ? (
+                                  <div className="flex items-center gap-2 text-blue-600 text-sm">
+                                    <span>🤖</span>
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                      ナレッジ追加済み
+                                    </span>
+                                  </div>
+                                ) : inquiry.knowledgeStatus === 'individual' ? (
+                                  <div className="flex items-center gap-2 text-gray-600 text-sm">
+                                    <span>📝</span>
+                                    <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+                                      個別対応
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => showKnowledgeConfirm(inquiry)}
+                                    className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+                                  >
+                                    ナレッジに追加
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -347,6 +446,9 @@ export default function InquiriesPage() {
           })
         )}
       </div>
+
+      {/* ナレッジ確認ダイアログ */}
+      <KnowledgeConfirmDialog />
     </div>
   );
 }

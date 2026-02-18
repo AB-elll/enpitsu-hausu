@@ -83,6 +83,7 @@ interface UnansweredQuestion {
   contactValue: string;
   timestamp: number;
   status: 'pending' | 'in_progress' | 'completed';
+  knowledgeStatus?: 'none' | 'added' | 'individual';
 }
 
 // ナレッジベースから回答を検索
