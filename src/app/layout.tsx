@@ -3,6 +3,7 @@ import { Noto_Sans_JP, M_PLUS_Rounded_1c, Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Chatbot from '@/components/Chatbot';
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ['latin'],
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main>{children}</main>
         <Footer />
+        <Chatbot />
       </body>
     </html>
   );
