@@ -29,6 +29,13 @@ export interface PriceTier {
 export const QUANTITY_OPTIONS = [100, 300, 500, 1000, 3000, 5000] as const;
 export type Quantity = (typeof QUANTITY_OPTIONS)[number];
 
+export interface PriceResult {
+  unitPrice: number;
+  totalPrice: number;
+  /** Discount rate compared to base unit price at same quantity tier (option savings only) */
+  discountRate: number;
+}
+
 // 階段式pricing: 数量が増えると単価が下がる
 export const PRODUCT_CATALOG: ProductOption[] = [
   // ===== カレンダー =====
@@ -360,12 +367,18 @@ export function getProductsByCategory(categoryId: CategoryId): ProductOption[] {
   return PRODUCT_CATALOG.filter((p) => p.categoryId === categoryId);
 }
 
-// 価格計算
+// 商品IDで検索
+export function getProductById(productId: string): ProductOption | undefined {
+  return PRODUCT_CATALOG.find((p) => p.id === productId);
+}
+
+// 価格計算（C1修正: discountRateは同一数量tierでのオプション割引のみ反映）
+// （M5修正: modifier一括乗算後に丸め）
 export function calculatePrice(
   product: ProductOption,
   selectedOptions: Record<string, string>,
   quantity: Quantity
-): { unitPrice: number; totalPrice: number; discountRate: number } {
+): PriceResult {
   // ベース単価を数量から取得
   const tier = product.basePrices.find((t) => t.quantity === quantity);
   if (!tier) {
@@ -373,27 +386,98 @@ export function calculatePrice(
     return { unitPrice: fallback.unitPrice, totalPrice: fallback.unitPrice * quantity, discountRate: 0 };
   }
 
-  let unitPrice = tier.unitPrice;
+  const baseUnitPrice = tier.unitPrice;
 
-  // オプションの価格修正を適用
+  // オプションの価格修正を一括計算（丸め誤差防止）
+  let combinedModifier = 1.0;
   for (const group of product.options) {
     const selectedChoiceId = selectedOptions[group.id];
     if (selectedChoiceId) {
       const choice = group.choices.find((c) => c.id === selectedChoiceId);
       if (choice) {
-        unitPrice = Math.round(unitPrice * choice.priceModifier);
+        combinedModifier *= choice.priceModifier;
       }
     }
   }
 
+  const unitPrice = Math.round(baseUnitPrice * combinedModifier);
   const totalPrice = unitPrice * quantity;
-  const baseTotal = product.basePrices[0].unitPrice * quantity;
-  const discountRate = baseTotal > 0 ? Math.round((1 - totalPrice / baseTotal) * 100) : 0;
 
-  return { unitPrice, totalPrice, discountRate: Math.max(0, discountRate) };
+  // 割引率: 同じtierのベース価格（modifier=1.0）との比較
+  const discountRate = combinedModifier < 1.0
+    ? Math.round((1 - combinedModifier) * 100)
+    : 0;
+
+  return { unitPrice, totalPrice, discountRate };
 }
 
 // 価格のフォーマット
 export function formatPrice(price: number): string {
   return '¥' + price.toLocaleString('ja-JP');
+}
+
+// 見積もりデータの型（estimate↔order間の引き継ぎ用）
+export interface EstimateData {
+  productId: string;
+  selectedOptions: Record<string, string>;
+  quantity: Quantity;
+}
+
+// EstimateData → URLパラメータ（IDベースで安全）
+export function estimateToSearchParams(data: EstimateData): string {
+  const params = new URLSearchParams({
+    pid: data.productId,
+    qty: String(data.quantity),
+    ...Object.fromEntries(
+      Object.entries(data.selectedOptions).map(([k, v]) => [`opt_${k}`, v])
+    ),
+  });
+  return params.toString();
+}
+
+// URLパラメータ → EstimateData（IDベースで安全）
+export function searchParamsToEstimate(searchParams: URLSearchParams): EstimateData | null {
+  const productId = searchParams.get('pid');
+  const qty = Number(searchParams.get('qty'));
+  if (!productId || !qty) return null;
+
+  const product = getProductById(productId);
+  if (!product) return null;
+
+  // Validate quantity
+  if (!(QUANTITY_OPTIONS as readonly number[]).includes(qty)) return null;
+
+  const selectedOptions: Record<string, string> = {};
+  for (const group of product.options) {
+    const val = searchParams.get(`opt_${group.id}`);
+    if (val && group.choices.some((c) => c.id === val)) {
+      selectedOptions[group.id] = val;
+    } else {
+      selectedOptions[group.id] = group.choices[0].id;
+    }
+  }
+
+  return { productId, selectedOptions, quantity: qty as Quantity };
+}
+
+// 注文データ型（将来のバックエンド連携用）
+export interface OrderData {
+  product: {
+    id: string;
+    name: string;
+    categoryId: CategoryId;
+    options: Record<string, { label: string; value: string }>;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  };
+  customer: {
+    company: string;
+    name: string;
+    tel: string;
+    email: string;
+    deliveryDate: string;
+    note: string;
+  };
+  submittedAt: string;
 }

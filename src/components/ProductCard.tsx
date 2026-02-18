@@ -48,10 +48,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
 
         <Link
-          href="/contact"
+          href={product.slug ? `/products/${product.category}/${product.slug}` : '/contact'}
           className="block w-full text-center px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
         >
-          お見積もりする
+          {product.slug ? '詳細を見る' : 'お見積もりする'}
         </Link>
       </div>
     </div>
