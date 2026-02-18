@@ -7,14 +7,27 @@ interface BreadcrumbItem {
 
 interface BreadcrumbNavProps {
   items: BreadcrumbItem[];
+  /** Use 'dark' when rendered on a dark (e.g. primary) background */
+  variant?: 'light' | 'dark';
 }
 
-export default function BreadcrumbNav({ items }: BreadcrumbNavProps) {
+export default function BreadcrumbNav({ items, variant = 'light' }: BreadcrumbNavProps) {
+  const isDark = variant === 'dark';
+  const listClass = isDark
+    ? 'flex items-center gap-2 text-sm text-white/70 flex-wrap'
+    : 'flex items-center gap-2 text-sm text-text-secondary flex-wrap';
+  const linkClass = isDark
+    ? 'hover:text-white transition-colors'
+    : 'hover:text-primary transition-colors';
+  const currentClass = isDark
+    ? 'text-white font-medium'
+    : 'text-text font-medium';
+
   return (
     <nav aria-label="パンくずリスト" className="py-4">
-      <ol className="flex items-center gap-2 text-sm text-text-secondary flex-wrap">
+      <ol className={listClass}>
         <li>
-          <Link href="/" className="hover:text-primary transition-colors">ホーム</Link>
+          <Link href="/" className={linkClass}>ホーム</Link>
         </li>
         {items.map((item, i) => (
           <li key={i} className="flex items-center gap-2">
@@ -22,9 +35,9 @@ export default function BreadcrumbNav({ items }: BreadcrumbNavProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
             {item.href ? (
-              <Link href={item.href} className="hover:text-primary transition-colors">{item.label}</Link>
+              <Link href={item.href} className={linkClass}>{item.label}</Link>
             ) : (
-              <span className="text-text font-medium">{item.label}</span>
+              <span className={currentClass}>{item.label}</span>
             )}
           </li>
         ))}

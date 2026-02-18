@@ -13,7 +13,7 @@ export default function ResolutionPage() {
     <div className="bg-bg min-h-screen">
       <section className="bg-primary text-white">
         <div className="max-w-5xl mx-auto px-4 py-10 md:py-14">
-          <BreadcrumbNav items={[
+          <BreadcrumbNav variant="dark" items={[
             { label: '入稿・デザインガイド', href: '/guide' },
             { label: '解像度・カラーモード' },
           ]} />

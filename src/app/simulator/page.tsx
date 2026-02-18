@@ -42,15 +42,14 @@ function drawShapeClip(
       break;
     }
     case 'keychain': {
-      // 角丸 + 上部に穴
+      // キーホルダー: 穴付き角丸ボディ
+      // 本体のみ描画（穴は別途描画）
       const radius = 16;
       const holeR = 10;
       const holeY = 18;
-      // 穴
-      ctx.arc(w / 2, holeY, holeR, 0, Math.PI * 2);
-      ctx.moveTo(w / 2 + holeR + 6, holeY);
-      // 本体 (穴の下から)
       const bodyTop = holeY + holeR + 4;
+
+      // 本体の角丸矩形
       ctx.moveTo(radius, bodyTop);
       ctx.lineTo(w - radius, bodyTop);
       ctx.arcTo(w, bodyTop, w, bodyTop + radius, radius);
@@ -61,6 +60,13 @@ function drawShapeClip(
       ctx.lineTo(0, bodyTop + radius);
       ctx.arcTo(0, bodyTop, radius, bodyTop, radius);
       ctx.closePath();
+
+      // 穴リング（上部）- 反時計回りでeven-oddクリップ用
+      ctx.moveTo(w / 2 + holeR + 6, holeY);
+      ctx.arc(w / 2, holeY, holeR + 6, 0, Math.PI * 2);
+      // 穴の中（反時計回り）
+      ctx.moveTo(w / 2 + holeR, holeY);
+      ctx.arc(w / 2, holeY, holeR, 0, Math.PI * 2, true);
       break;
     }
     case 'rounded-rect': {
@@ -82,6 +88,92 @@ function drawShapeClip(
   }
 }
 
+/* ─── 共通描画ロジック ─── */
+function renderCanvas(
+  ctx: CanvasRenderingContext2D,
+  product: ProductTemplate,
+  bgColor: string,
+  uploadedImage: HTMLImageElement | null,
+  imgPos: { x: number; y: number },
+  imgScale: number,
+  text: string,
+  textColor: string,
+  fontSize: number,
+  fontFamily: string,
+) {
+  const w = product.width;
+  const h = product.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // クリップパス
+  ctx.save();
+  drawShapeClip(ctx, product.shape, w, h);
+  if (product.shape === 'keychain') {
+    ctx.clip('evenodd');
+  } else {
+    ctx.clip();
+  }
+
+  // 背景
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, w, h);
+
+  // アップロード画像
+  if (uploadedImage) {
+    const area = product.imageArea;
+    const areaW = w * area.width;
+    const areaH = h * area.height;
+    const areaX = w * area.x;
+    const areaY = h * area.y;
+
+    const imgW = uploadedImage.naturalWidth;
+    const imgH = uploadedImage.naturalHeight;
+    const fitScale = Math.min(areaW / imgW, areaH / imgH) * imgScale;
+    const drawW = imgW * fitScale;
+    const drawH = imgH * fitScale;
+    const drawX = areaX + (areaW - drawW) / 2 + imgPos.x;
+    const drawY = areaY + (areaH - drawH) / 2 + imgPos.y;
+
+    ctx.drawImage(uploadedImage, drawX, drawY, drawW, drawH);
+  }
+
+  // テキスト（空文字はスキップ）
+  const trimmed = text.trim();
+  if (trimmed) {
+    const area = product.textArea;
+    const tx = w * (area.x + area.width / 2);
+    const ty = h * (area.y + area.height / 2);
+    const maxWidth = w * area.width;
+
+    // フォントサイズをテキストエリアの高さに制限
+    const maxFontSize = h * area.height * 0.8;
+    const clampedSize = Math.min(fontSize, maxFontSize);
+
+    ctx.fillStyle = textColor;
+    ctx.font = `bold ${clampedSize}px ${fontFamily}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const lines = trimmed.split('\n');
+    const lineH = clampedSize * 1.4;
+    const startY = ty - ((lines.length - 1) * lineH) / 2;
+    lines.forEach((line, i) => {
+      ctx.fillText(line, tx, startY + i * lineH, maxWidth);
+    });
+  }
+
+  ctx.restore();
+
+  // 枠線（シェイプ）
+  ctx.save();
+  ctx.strokeStyle = '#D1D5DB';
+  ctx.lineWidth = 2;
+  drawShapeClip(ctx, product.shape, w, h);
+  ctx.stroke();
+  ctx.restore();
+}
+
 /* ─── メインコンポーネント ─── */
 export default function SimulatorPage() {
   const [selectedProduct, setSelectedProduct] = useState<ProductTemplate>(productTemplates[0]);
@@ -99,6 +191,7 @@ export default function SimulatorPage() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>(0);
 
   // キャンバスのスケール（レスポンシブ用）
   const [canvasScale, setCanvasScale] = useState(1);
@@ -127,78 +220,17 @@ export default function SimulatorPage() {
     setImgScale(1);
   }
 
-  // Canvas 描画
+  // Canvas 描画（requestAnimationFrame でバッチ）
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const w = selectedProduct.width;
-    const h = selectedProduct.height;
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = selectedProduct.width;
+    canvas.height = selectedProduct.height;
 
-    // クリア
-    ctx.clearRect(0, 0, w, h);
-
-    // クリップパス
-    ctx.save();
-    drawShapeClip(ctx, selectedProduct.shape, w, h);
-    ctx.clip();
-
-    // 背景
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, w, h);
-
-    // アップロード画像
-    if (uploadedImage) {
-      const area = selectedProduct.imageArea;
-      const areaW = w * area.width;
-      const areaH = h * area.height;
-      const areaX = w * area.x;
-      const areaY = h * area.y;
-
-      const imgW = uploadedImage.naturalWidth;
-      const imgH = uploadedImage.naturalHeight;
-      const fitScale = Math.min(areaW / imgW, areaH / imgH) * imgScale;
-      const drawW = imgW * fitScale;
-      const drawH = imgH * fitScale;
-      const drawX = areaX + (areaW - drawW) / 2 + imgPos.x;
-      const drawY = areaY + (areaH - drawH) / 2 + imgPos.y;
-
-      ctx.drawImage(uploadedImage, drawX, drawY, drawW, drawH);
-    }
-
-    // テキスト
-    if (text) {
-      const area = selectedProduct.textArea;
-      const tx = w * (area.x + area.width / 2);
-      const ty = h * (area.y + area.height / 2);
-
-      ctx.fillStyle = textColor;
-      ctx.font = `bold ${fontSize}px ${fontFamily}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      // 複数行対応
-      const lines = text.split('\n');
-      const lineH = fontSize * 1.4;
-      const startY = ty - ((lines.length - 1) * lineH) / 2;
-      lines.forEach((line, i) => {
-        ctx.fillText(line, tx, startY + i * lineH, w * area.width);
-      });
-    }
-
-    ctx.restore();
-
-    // 枠線（シェイプ）
-    ctx.save();
-    ctx.strokeStyle = '#D1D5DB';
-    ctx.lineWidth = 2;
-    drawShapeClip(ctx, selectedProduct.shape, w, h);
-    ctx.stroke();
-    ctx.restore();
+    renderCanvas(ctx, selectedProduct, bgColor, uploadedImage, imgPos, imgScale, text, textColor, fontSize, fontFamily);
   }, [selectedProduct, bgColor, text, fontFamily, textColor, fontSize, uploadedImage, imgPos, imgScale]);
 
   useEffect(() => {
@@ -222,90 +254,54 @@ export default function SimulatorPage() {
     reader.readAsDataURL(file);
   }
 
-  // ドラッグで画像移動
-  function getPointerPos(e: React.MouseEvent | React.TouchEvent) {
+  // ポインターイベントで統一（mouse + touch を一本化）
+  function getPointerPos(e: React.PointerEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     return {
-      x: (clientX - rect.left) / canvasScale,
-      y: (clientY - rect.top) / canvasScale,
+      x: (e.clientX - rect.left) / canvasScale,
+      y: (e.clientY - rect.top) / canvasScale,
     };
   }
 
-  function handlePointerDown(e: React.MouseEvent | React.TouchEvent) {
+  function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!uploadedImage) return;
+    e.preventDefault();
+    (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
     const pos = getPointerPos(e);
     setDragging(true);
     setDragStart({ x: pos.x - imgPos.x, y: pos.y - imgPos.y });
   }
 
-  function handlePointerMove(e: React.MouseEvent | React.TouchEvent) {
+  function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!dragging) return;
+    e.preventDefault();
     const pos = getPointerPos(e);
-    setImgPos({ x: pos.x - dragStart.x, y: pos.y - dragStart.y });
+    const newPos = { x: pos.x - dragStart.x, y: pos.y - dragStart.y };
+
+    // requestAnimationFrame でスロットル
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      setImgPos(newPos);
+    });
   }
 
   function handlePointerUp() {
     setDragging(false);
   }
 
-  // PNG ダウンロード
+  // PNG ダウンロード（2x 高解像度）
   function handleDownload() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    // 高解像度で再描画
-    const tmpCanvas = document.createElement('canvas');
     const scale = 2;
+    const tmpCanvas = document.createElement('canvas');
     tmpCanvas.width = selectedProduct.width * scale;
     tmpCanvas.height = selectedProduct.height * scale;
     const ctx = tmpCanvas.getContext('2d');
     if (!ctx) return;
     ctx.scale(scale, scale);
 
-    // 同じ描画ロジック
-    drawShapeClip(ctx, selectedProduct.shape, selectedProduct.width, selectedProduct.height);
-    ctx.clip();
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, selectedProduct.width, selectedProduct.height);
-
-    if (uploadedImage) {
-      const area = selectedProduct.imageArea;
-      const w = selectedProduct.width;
-      const h = selectedProduct.height;
-      const areaW = w * area.width;
-      const areaH = h * area.height;
-      const areaX = w * area.x;
-      const areaY = h * area.y;
-      const imgW = uploadedImage.naturalWidth;
-      const imgH = uploadedImage.naturalHeight;
-      const fitScale = Math.min(areaW / imgW, areaH / imgH) * imgScale;
-      const drawW = imgW * fitScale;
-      const drawH = imgH * fitScale;
-      const drawX = areaX + (areaW - drawW) / 2 + imgPos.x;
-      const drawY = areaY + (areaH - drawH) / 2 + imgPos.y;
-      ctx.drawImage(uploadedImage, drawX, drawY, drawW, drawH);
-    }
-
-    if (text) {
-      const area = selectedProduct.textArea;
-      const w = selectedProduct.width;
-      const h = selectedProduct.height;
-      const tx = w * (area.x + area.width / 2);
-      const ty = h * (area.y + area.height / 2);
-      ctx.fillStyle = textColor;
-      ctx.font = `bold ${fontSize}px ${fontFamily}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const lines = text.split('\n');
-      const lineH = fontSize * 1.4;
-      const startY = ty - ((lines.length - 1) * lineH) / 2;
-      lines.forEach((line, i) => {
-        ctx.fillText(line, tx, startY + i * lineH, w * area.width);
-      });
-    }
+    renderCanvas(ctx, selectedProduct, bgColor, uploadedImage, imgPos, imgScale, text, textColor, fontSize, fontFamily);
 
     const link = document.createElement('a');
     link.download = `${selectedProduct.id}-design.png`;
@@ -347,6 +343,7 @@ export default function SimulatorPage() {
                 <span
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: selectedProduct.categoryColor }}
+                  aria-hidden="true"
                 />
                 <span className="font-semibold text-text text-sm sm:text-base">
                   {selectedProduct.name}
@@ -360,19 +357,18 @@ export default function SimulatorPage() {
               <div className="flex justify-center overflow-hidden">
                 <canvas
                   ref={canvasRef}
+                  role="img"
+                  aria-label={`${selectedProduct.name}のデザインプレビュー`}
                   className="cursor-move"
                   style={{
                     width: selectedProduct.width * canvasScale,
                     height: selectedProduct.height * canvasScale,
                     touchAction: 'none',
                   }}
-                  onMouseDown={handlePointerDown}
-                  onMouseMove={handlePointerMove}
-                  onMouseUp={handlePointerUp}
-                  onMouseLeave={handlePointerUp}
-                  onTouchStart={handlePointerDown}
-                  onTouchMove={handlePointerMove}
-                  onTouchEnd={handlePointerUp}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
                 />
               </div>
 
@@ -395,7 +391,7 @@ export default function SimulatorPage() {
           {/* ─── 右: コントロールパネル ─── */}
           <div className="lg:w-[360px] flex-shrink-0">
             {/* タブ */}
-            <div className="flex rounded-lg bg-surface border border-border overflow-hidden mb-4">
+            <div className="flex rounded-lg bg-surface border border-border overflow-hidden mb-4" role="tablist" aria-label="デザイン設定">
               {([
                 ['product', '🏷️ 商品'],
                 ['text', '✏️ テキスト'],
@@ -404,6 +400,9 @@ export default function SimulatorPage() {
               ] as const).map(([key, label]) => (
                 <button
                   key={key}
+                  role="tab"
+                  aria-selected={tab === key}
+                  aria-controls={`panel-${key}`}
                   onClick={() => setTab(key)}
                   className={`flex-1 py-2.5 text-xs sm:text-sm font-medium transition-colors ${
                     tab === key
@@ -419,7 +418,7 @@ export default function SimulatorPage() {
             <div className="bg-white rounded-xl shadow-sm border border-border p-4 sm:p-5">
               {/* 商品選択 */}
               {tab === 'product' && (
-                <div className="space-y-4">
+                <div id="panel-product" role="tabpanel" className="space-y-4">
                   <h3 className="font-semibold text-text">商品を選択</h3>
                   {Object.entries(grouped).map(([cat, items]) => (
                     <div key={cat}>
@@ -427,6 +426,7 @@ export default function SimulatorPage() {
                         <span
                           className="w-2 h-2 rounded-full"
                           style={{ backgroundColor: items[0].categoryColor }}
+                          aria-hidden="true"
                         />
                         {cat}
                       </p>
@@ -435,6 +435,7 @@ export default function SimulatorPage() {
                           <button
                             key={p.id}
                             onClick={() => handleProductChange(p)}
+                            aria-pressed={selectedProduct.id === p.id}
                             className={`text-left p-3 rounded-lg border transition-all text-sm ${
                               selectedProduct.id === p.id
                                 ? 'border-primary bg-blue-50 text-primary'
@@ -455,12 +456,13 @@ export default function SimulatorPage() {
 
               {/* テキスト編集 */}
               {tab === 'text' && (
-                <div className="space-y-4">
+                <div id="panel-text" role="tabpanel" className="space-y-4">
                   <h3 className="font-semibold text-text">テキスト設定</h3>
 
                   <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-1">テキスト</label>
+                    <label htmlFor="sim-text" className="block text-xs font-medium text-text-secondary mb-1">テキスト</label>
                     <textarea
+                      id="sim-text"
                       value={text}
                       onChange={(e) => setText(e.target.value)}
                       rows={3}
@@ -470,8 +472,9 @@ export default function SimulatorPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-1">フォント</label>
+                    <label htmlFor="sim-font" className="block text-xs font-medium text-text-secondary mb-1">フォント</label>
                     <select
+                      id="sim-font"
                       value={fontFamily}
                       onChange={(e) => setFontFamily(e.target.value)}
                       className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
@@ -485,10 +488,11 @@ export default function SimulatorPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-1">
+                    <label htmlFor="sim-fontsize" className="block text-xs font-medium text-text-secondary mb-1">
                       文字サイズ: {fontSize}px
                     </label>
                     <input
+                      id="sim-fontsize"
                       type="range"
                       min={12}
                       max={72}
@@ -500,12 +504,14 @@ export default function SimulatorPage() {
 
                   <div>
                     <label className="block text-xs font-medium text-text-secondary mb-1">文字色</label>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="文字色">
                       {textColorOptions.map((c) => (
                         <button
                           key={c.value}
                           onClick={() => setTextColor(c.value)}
-                          title={c.name}
+                          role="radio"
+                          aria-checked={textColor === c.value}
+                          aria-label={c.name}
                           className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
                             textColor === c.value ? 'border-primary scale-110' : 'border-border'
                           }`}
@@ -519,11 +525,11 @@ export default function SimulatorPage() {
 
               {/* 画像アップロード */}
               {tab === 'image' && (
-                <div className="space-y-4">
+                <div id="panel-image" role="tabpanel" className="space-y-4">
                   <h3 className="font-semibold text-text">画像設定</h3>
 
                   <label className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-6 cursor-pointer hover:border-primary/50 transition-colors">
-                    <span className="text-3xl mb-2">📁</span>
+                    <span className="text-3xl mb-2" aria-hidden="true">📁</span>
                     <span className="text-sm text-text-secondary">
                       クリックして画像を選択
                     </span>
@@ -535,16 +541,18 @@ export default function SimulatorPage() {
                       accept="image/*"
                       onChange={handleImageUpload}
                       className="hidden"
+                      aria-label="画像ファイルを選択"
                     />
                   </label>
 
                   {uploadedImage && (
                     <>
                       <div>
-                        <label className="block text-xs font-medium text-text-secondary mb-1">
+                        <label htmlFor="sim-imgscale" className="block text-xs font-medium text-text-secondary mb-1">
                           画像サイズ: {Math.round(imgScale * 100)}%
                         </label>
                         <input
+                          id="sim-imgscale"
                           type="range"
                           min={0.2}
                           max={3}
@@ -572,14 +580,16 @@ export default function SimulatorPage() {
 
               {/* 背景色 */}
               {tab === 'bg' && (
-                <div className="space-y-4">
+                <div id="panel-bg" role="tabpanel" className="space-y-4">
                   <h3 className="font-semibold text-text">背景色</h3>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-4 gap-3" role="radiogroup" aria-label="背景色">
                     {bgColorOptions.map((c) => (
                       <button
                         key={c.value}
                         onClick={() => setBgColor(c.value)}
-                        title={c.name}
+                        role="radio"
+                        aria-checked={bgColor === c.value}
+                        aria-label={c.name}
                         className={`aspect-square rounded-lg border-2 transition-transform hover:scale-105 ${
                           bgColor === c.value ? 'border-primary scale-105 ring-2 ring-primary/20' : 'border-border'
                         }`}
@@ -589,7 +599,7 @@ export default function SimulatorPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-1">
+                    <label htmlFor="sim-custom-color" className="block text-xs font-medium text-text-secondary mb-1">
                       カスタムカラー
                     </label>
                     <div className="flex items-center gap-2">
@@ -598,8 +608,10 @@ export default function SimulatorPage() {
                         value={bgColor}
                         onChange={(e) => setBgColor(e.target.value)}
                         className="w-10 h-10 rounded-lg border border-border cursor-pointer"
+                        aria-label="カラーピッカー"
                       />
                       <input
+                        id="sim-custom-color"
                         type="text"
                         value={bgColor}
                         onChange={(e) => setBgColor(e.target.value)}

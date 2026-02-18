@@ -41,13 +41,15 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text)] mb-1.5">
+              <label htmlFor="admin-id" className="block text-sm font-medium text-[var(--color-text)] mb-1.5">
                 管理者ID
               </label>
               <input
+                id="admin-id"
                 type="text"
                 value={id}
                 onChange={(e) => setId(e.target.value)}
+                autoComplete="username"
                 className="w-full border border-[var(--color-border)] rounded-lg px-4 py-3 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition"
                 placeholder="admin"
                 required
@@ -55,24 +57,28 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text)] mb-1.5">
+              <label htmlFor="admin-password" className="block text-sm font-medium text-[var(--color-text)] mb-1.5">
                 パスワード
               </label>
               <input
+                id="admin-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 className="w-full border border-[var(--color-border)] rounded-lg px-4 py-3 text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition"
                 placeholder="••••••••"
                 required
               />
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-[var(--color-danger)]/20 text-[var(--color-danger)] text-sm rounded-lg px-4 py-3">
-                {error}
-              </div>
-            )}
+            <div aria-live="polite" aria-atomic="true">
+              {error && (
+                <div className="bg-red-50 border border-[var(--color-danger)]/20 text-[var(--color-danger)] text-sm rounded-lg px-4 py-3" role="alert">
+                  {error}
+                </div>
+              )}
+            </div>
 
             <button
               type="submit"

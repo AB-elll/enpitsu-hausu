@@ -36,11 +36,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-[var(--color-bg)] flex">
       {/* モバイルオーバーレイ */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
       )}
 
       {/* サイドバー */}
-      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-64 bg-white border-r border-[var(--color-border)] z-40 flex flex-col transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside id="admin-sidebar" role="complementary" aria-label="管理サイドバー" className={`fixed lg:sticky top-0 left-0 h-screen w-64 bg-white border-r border-[var(--color-border)] z-40 flex flex-col transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="px-6 py-5 border-b border-[var(--color-border)]">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-[var(--color-primary)] rotate-45" />
@@ -51,7 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <p className="text-xs text-[var(--color-text-secondary)] mt-1">管理パネル</p>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1" aria-label="管理メニュー">
           {navItems.map((item) => {
             const active = pathname === item.href;
             return (
@@ -90,8 +90,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button
             onClick={() => setSidebarOpen(true)}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[var(--color-surface)] transition"
+            aria-label="メニューを開く"
+            aria-expanded={sidebarOpen}
+            aria-controls="admin-sidebar"
           >
-            <span className="text-lg">☰</span>
+            <span className="text-lg" aria-hidden="true">☰</span>
           </button>
           <span className="font-bold text-[var(--color-text)] text-sm font-[family-name:var(--font-heading)]">
             管理パネル

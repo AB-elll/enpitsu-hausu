@@ -20,7 +20,7 @@ export default function TemplatesPage() {
     <div className="bg-bg min-h-screen">
       <section className="bg-primary text-white">
         <div className="max-w-5xl mx-auto px-4 py-10 md:py-14">
-          <BreadcrumbNav items={[
+          <BreadcrumbNav variant="dark" items={[
             { label: '入稿・デザインガイド', href: '/guide' },
             { label: 'テンプレートダウンロード' },
           ]} />
@@ -63,13 +63,15 @@ export default function TemplatesPage() {
                       {t.formats.map((fmt) => (
                         <button
                           key={fmt}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-dark transition-colors cursor-pointer"
-                          title="ダミーリンク（準備中）"
+                          disabled
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-primary/50 text-white/80 cursor-not-allowed"
+                          aria-label={`${t.name} ${fmt}形式テンプレートをダウンロード（準備中）`}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
                           {fmt}形式
+                          <span className="text-xs opacity-70">（準備中）</span>
                         </button>
                       ))}
                     </div>

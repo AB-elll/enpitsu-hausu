@@ -1,6 +1,7 @@
 // 認証ユーティリティ（localStorageベース）
 
 const AUTH_KEY = 'enpitsu_admin_auth';
+const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24時間
 const CREDENTIALS = { id: 'admin', password: 'enpitsu2026' };
 
 export function login(id: string, password: string): boolean {
@@ -21,7 +22,19 @@ export function logout(): void {
 
 export function isAuthenticated(): boolean {
   if (typeof window === 'undefined') return false;
-  return localStorage.getItem(AUTH_KEY) !== null;
+  const data = localStorage.getItem(AUTH_KEY);
+  if (!data) return false;
+  try {
+    const parsed = JSON.parse(data);
+    if (Date.now() - parsed.loggedInAt > SESSION_MAX_AGE_MS) {
+      localStorage.removeItem(AUTH_KEY);
+      return false;
+    }
+    return true;
+  } catch {
+    localStorage.removeItem(AUTH_KEY);
+    return false;
+  }
 }
 
 export function getUser(): { id: string; loggedInAt: number } | null {

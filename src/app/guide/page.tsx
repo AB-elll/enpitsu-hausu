@@ -40,7 +40,7 @@ export default function GuidePage() {
       {/* ヒーロー */}
       <section className="bg-primary text-white">
         <div className="max-w-5xl mx-auto px-4 py-12 md:py-16">
-          <BreadcrumbNav items={[{ label: '入稿・デザインガイド' }]} />
+          <BreadcrumbNav items={[{ label: '入稿・デザインガイド' }]} variant="dark" />
           <h1 className="text-3xl md:text-4xl font-bold font-heading mb-4">
             入稿・デザインガイド
           </h1>

@@ -79,6 +79,7 @@ export default function Footer() {
           <div className="flex gap-6 text-xs text-gray-500">
             <Link href="/privacy" className="hover:text-gray-300 transition-colors">プライバシーポリシー</Link>
             <Link href="/sitemap" className="hover:text-gray-300 transition-colors">サイトマップ</Link>
+            <Link href="/auth/login" className="hover:text-gray-300 transition-colors">管理</Link>
           </div>
         </div>
       </div>

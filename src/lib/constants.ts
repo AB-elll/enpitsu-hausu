@@ -70,6 +70,8 @@ export const NAV_ITEMS = [
   { label: 'ご注文の流れ', href: '/flow' },
   { label: '制作実績', href: '/works' },
   { label: '納期カレンダー', href: '/delivery' },
+  { label: 'シミュレーター', href: '/simulator' },
+  { label: 'デザインガイド', href: '/guide' },
   { label: '会社概要', href: '/about' },
   { label: 'お問い合わせ', href: '/contact' },
 ] as const;
