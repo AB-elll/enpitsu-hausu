@@ -5,10 +5,20 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated, logout } from '@/lib/auth';
 
+interface UnansweredQuestion {
+  id: string;
+  question: string;
+  contactType: 'line' | 'email' | 'phone';
+  contactValue: string;
+  timestamp: number;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
 const navItems = [
   { href: '/admin', label: 'ダッシュボード', icon: '◆' },
   { href: '/admin/orders', label: '注文管理', icon: '▦' },
   { href: '/admin/products', label: '商品管理', icon: '▣' },
+  { href: '/admin/inquiries', label: '問い合わせ管理', icon: '💬' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -16,14 +26,42 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const updatePendingCount = () => {
+    try {
+      const questions: UnansweredQuestion[] = JSON.parse(localStorage.getItem('enpitsu_unanswered_questions') || '[]');
+      const pending = questions.filter(q => q.status === 'pending').length;
+      setPendingCount(pending);
+    } catch {
+      setPendingCount(0);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated()) {
       router.replace('/auth/login');
     } else {
       setReady(true);
+      updatePendingCount();
     }
   }, [router]);
+
+  // localStorageの変更を監視
+  useEffect(() => {
+    const handleStorageChange = () => {
+      updatePendingCount();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    // 同一タブ内でのlocalStorage変更も検知するためのポーリング
+    const interval = setInterval(updatePendingCount, 5000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -54,12 +92,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <nav className="flex-1 px-3 py-4 space-y-1" aria-label="管理メニュー">
           {navItems.map((item) => {
             const active = pathname === item.href;
+            const isInquiries = item.href === '/admin/inquiries';
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition relative ${
                   active
                     ? 'bg-[var(--color-primary)] text-white'
                     : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]'
@@ -67,6 +106,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               >
                 <span className="text-base">{item.icon}</span>
                 {item.label}
+                {isInquiries && pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+                    {pendingCount > 99 ? '99+' : pendingCount}
+                  </span>
+                )}
               </Link>
             );
           })}

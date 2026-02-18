@@ -8,6 +8,14 @@ interface Message {
   role: 'user' | 'bot';
   text: string;
   timestamp: Date;
+  contactForm?: {
+    show: boolean;
+    step: 'input' | 'confirm' | 'complete';
+    contactInfo?: {
+      type: 'line' | 'email' | 'phone';
+      value: string;
+    };
+  };
 }
 
 interface ChatApiMessage {
@@ -57,20 +65,80 @@ const MOCK_RESPONSES: MockResponse[] = [
   },
 ];
 
-const MOCK_DEFAULT_REPLIES = [
-  'えんぴつくんはまだお勉強中です！📚 でも以下でお手伝いできるかも！\n\n💰 [見積もり](/enpitsu-hausu/estimate)\n📝 [注文フォーム](/enpitsu-hausu/order)\n📞 **03-3745-8421**（平日9:00〜18:00）\n✉️ [お問い合わせ](/enpitsu-hausu/contact)',
-  'うーん、ちょっと難しい質問ですね🤔\n\nこちらからご相談いただけると嬉しいです！\n📞 **03-3745-8421**（平日9:00〜18:00）\n✉️ [お問い合わせフォーム](/enpitsu-hausu/contact)',
-  'その件はえんぴつくんにはまだ難しいです…📝\n\nでもスタッフが丁寧にお答えします！\n📞 **03-3745-8421**（平日9:00〜18:00）\n✉️ [お問い合わせ](/enpitsu-hausu/contact)',
-];
+const HUMAN_IN_LOOP_REPLY = 
+  'すみません、その質問は担当者に確認しますね！✏️\n\nお返事先を教えてください：';
 
-function getMockResponse(userText: string): string {
+interface KnowledgeEntry {
+  id: string;
+  question: string;
+  answer: string;
+  keywords: string[];
+  timestamp: number;
+}
+
+interface UnansweredQuestion {
+  id: string;
+  question: string;
+  contactType: 'line' | 'email' | 'phone';
+  contactValue: string;
+  timestamp: number;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
+// ナレッジベースから回答を検索
+function searchKnowledgeBase(userText: string): string | null {
+  try {
+    const knowledgeBase: KnowledgeEntry[] = JSON.parse(localStorage.getItem('enpitsu_knowledge_base') || '[]');
+    const lower = userText.toLowerCase();
+    
+    for (const entry of knowledgeBase) {
+      if (entry.keywords.some(keyword => lower.includes(keyword.toLowerCase()))) {
+        return entry.answer;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// 未回答質問を保存
+function saveUnansweredQuestion(question: string, contactType: 'line' | 'email' | 'phone', contactValue: string) {
+  try {
+    const questions: UnansweredQuestion[] = JSON.parse(localStorage.getItem('enpitsu_unanswered_questions') || '[]');
+    const newQuestion: UnansweredQuestion = {
+      id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      question,
+      contactType,
+      contactValue,
+      timestamp: Date.now(),
+      status: 'pending'
+    };
+    questions.push(newQuestion);
+    localStorage.setItem('enpitsu_unanswered_questions', JSON.stringify(questions));
+  } catch {
+    // 保存に失敗しても続行
+  }
+}
+
+function getMockResponse(userText: string): { text: string; requiresContact: boolean } {
   const lower = userText.toLowerCase();
+  
+  // まず既存のキーワードマッチをチェック
   for (const resp of MOCK_RESPONSES) {
     if (resp.keywords.some((kw) => lower.includes(kw))) {
-      return resp.reply;
+      return { text: resp.reply, requiresContact: false };
     }
   }
-  return MOCK_DEFAULT_REPLIES[Math.floor(Math.random() * MOCK_DEFAULT_REPLIES.length)];
+  
+  // ナレッジベースから回答を検索
+  const knowledgeAnswer = searchKnowledgeBase(userText);
+  if (knowledgeAnswer) {
+    return { text: knowledgeAnswer, requiresContact: false };
+  }
+  
+  // どちらにもマッチしない場合は人間介入フローに
+  return { text: HUMAN_IN_LOOP_REPLY, requiresContact: true };
 }
 
 const MAX_MESSAGES_PER_SESSION = 50;
@@ -157,6 +225,7 @@ export default function Chatbot() {
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
   const [messageCount, setMessageCount] = useState(0);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
+  const [pendingQuestion, setPendingQuestion] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
@@ -196,20 +265,33 @@ export default function Chatbot() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  const addBotReplyFallback = useCallback((text: string) => {
+  const addBotReplyFallback = useCallback((userText: string, text: string, requiresContact = false) => {
     setIsTyping(true);
     setTimeout(() => {
       setMessages((prev) => [
         ...prev,
-        { id: generateId('bot'), role: 'bot', text, timestamp: new Date() },
+        { 
+          id: generateId('bot'), 
+          role: 'bot', 
+          text, 
+          timestamp: new Date(),
+          contactForm: requiresContact ? {
+            show: true,
+            step: 'input'
+          } : undefined
+        },
       ]);
       setIsTyping(false);
+      if (requiresContact) {
+        setPendingQuestion(userText);
+      }
     }, 1000 + Math.random() * 1000);
   }, []);
 
   const sendToAI = useCallback(async (userText: string) => {
     if (messageCount >= MAX_MESSAGES_PER_SESSION) {
       addBotReplyFallback(
+        userText,
         'セッションのメッセージ上限に達しました 🙇\n\n詳しくは [お問い合わせフォーム](/enpitsu-hausu/contact) よりご連絡ください。\n📞 03-3745-8421（平日9:00〜18:00）',
       );
       return;
@@ -241,15 +323,27 @@ export default function Chatbot() {
       historyRef.current.push({ role: 'assistant', content: result });
       saveHistory(historyRef.current);
     } else {
-      const fallbackText = getMockResponse(userText);
+      const { text: fallbackText, requiresContact } = getMockResponse(userText);
 
       setMessages((prev) => {
         const existing = prev.find((m) => m.id === botMsgId);
+        const messageData = { 
+          id: botMsgId, 
+          role: 'bot' as const, 
+          text: fallbackText, 
+          timestamp: new Date(),
+          contactForm: requiresContact ? { show: true, step: 'input' as const } : undefined
+        };
+        
         if (existing) {
-          return prev.map((m) => (m.id === botMsgId ? { ...m, text: fallbackText } : m));
+          return prev.map((m) => (m.id === botMsgId ? messageData : m));
         }
-        return [...prev, { id: botMsgId, role: 'bot' as const, text: fallbackText, timestamp: new Date() }];
+        return [...prev, messageData];
       });
+      
+      if (requiresContact) {
+        setPendingQuestion(userText);
+      }
 
       // Remove the user message from history since AI didn't process it
       historyRef.current.pop();
@@ -286,7 +380,7 @@ export default function Chatbot() {
       if (aiAvailable) {
         sendToAI(questionText);
       } else {
-        addBotReplyFallback(faq.answer);
+        addBotReplyFallback(questionText, faq.answer);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -307,7 +401,8 @@ export default function Chatbot() {
     if (aiAvailable) {
       sendToAI(trimmed);
     } else {
-      addBotReplyFallback(getMockResponse(trimmed));
+      const { text, requiresContact } = getMockResponse(trimmed);
+      addBotReplyFallback(trimmed, text, requiresContact);
     }
   }, [input, isStreaming, aiAvailable, sendToAI, addBotReplyFallback]);
 
@@ -320,6 +415,40 @@ export default function Chatbot() {
     },
     [handleSend],
   );
+
+  const handleContactSubmit = useCallback((messageId: string, contactType: 'line' | 'email' | 'phone', contactValue: string) => {
+    // 未回答質問として保存
+    saveUnansweredQuestion(pendingQuestion, contactType, contactValue);
+    
+    // メッセージを更新してフォームを完了状態に
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId 
+        ? {
+            ...msg,
+            contactForm: {
+              show: true,
+              step: 'complete',
+              contactInfo: { type: contactType, value: contactValue }
+            }
+          }
+        : msg
+    ));
+    
+    // 完了メッセージを追加
+    setTimeout(() => {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: generateId('bot'),
+          role: 'bot',
+          text: 'ありがとうございます！営業時間内にお返事しますね 😊\n\n📞 お急ぎの場合：03-3745-8421（平日9:00〜18:00）',
+          timestamp: new Date()
+        }
+      ]);
+    }, 500);
+    
+    setPendingQuestion('');
+  }, [pendingQuestion]);
 
   const renderMarkdown = (text: string) => {
     return text.split('\n').map((line, i) => {
@@ -365,6 +494,90 @@ export default function Chatbot() {
         </span>
       );
     });
+  };
+
+  const ContactForm = ({ messageId, onSubmit }: { messageId: string; onSubmit: (messageId: string, type: 'line' | 'email' | 'phone', value: string) => void }) => {
+    const [contactType, setContactType] = useState<'line' | 'email' | 'phone'>('line');
+    const [contactValue, setContactValue] = useState('');
+    const [isValid, setIsValid] = useState(false);
+
+    useEffect(() => {
+      const validate = () => {
+        if (!contactValue.trim()) return false;
+        
+        switch (contactType) {
+          case 'line':
+            return contactValue.trim().length > 0; // LINE IDは任意の文字列OK
+          case 'email':
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactValue.trim());
+          case 'phone':
+            return /^[\d-]+$/.test(contactValue.trim()) && contactValue.replace(/\D/g, '').length >= 10;
+          default:
+            return false;
+        }
+      };
+      setIsValid(validate());
+    }, [contactType, contactValue]);
+
+    const getPlaceholder = () => {
+      switch (contactType) {
+        case 'line': return 'LINE ID を入力';
+        case 'email': return 'メールアドレスを入力';
+        case 'phone': return '電話番号を入力（ハイフンありOK）';
+      }
+    };
+
+    const handleSubmit = () => {
+      if (isValid) {
+        onSubmit(messageId, contactType, contactValue.trim());
+      }
+    };
+
+    return (
+      <div className="mt-3 rounded-lg border border-border bg-white p-3 shadow-sm">
+        <div className="mb-3 flex gap-2">
+          {[
+            { type: 'line' as const, icon: '💬', label: 'LINE' },
+            { type: 'email' as const, icon: '✉️', label: 'Email' },
+            { type: 'phone' as const, icon: '📞', label: '電話' }
+          ].map(({ type, icon, label }) => (
+            <button
+              key={type}
+              onClick={() => setContactType(type)}
+              className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                contactType === type
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <span>{icon}</span>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={contactValue}
+            onChange={(e) => setContactValue(e.target.value)}
+            placeholder={getPlaceholder()}
+            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && isValid) {
+                handleSubmit();
+              }
+            }}
+          />
+          <button
+            onClick={handleSubmit}
+            disabled={!isValid}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-dark disabled:opacity-50 disabled:hover:bg-primary"
+          >
+            送信
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -442,13 +655,32 @@ export default function Chatbot() {
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-[fadeSlideIn_0.3s_ease-out]`}
             >
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                  msg.role === 'user'
-                    ? 'rounded-br-sm bg-primary text-white'
-                    : 'rounded-bl-sm bg-surface text-text'
+                className={`max-w-[80%] ${
+                  msg.role === 'user' ? 'flex justify-end' : 'flex-col'
                 }`}
               >
-                {renderMarkdown(msg.text)}
+                <div
+                  className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                    msg.role === 'user'
+                      ? 'rounded-br-sm bg-primary text-white'
+                      : 'rounded-bl-sm bg-surface text-text'
+                  }`}
+                >
+                  {renderMarkdown(msg.text)}
+                </div>
+                {msg.contactForm?.show && msg.contactForm.step === 'input' && (
+                  <ContactForm
+                    messageId={msg.id}
+                    onSubmit={handleContactSubmit}
+                  />
+                )}
+                {msg.contactForm?.show && msg.contactForm.step === 'complete' && msg.contactForm.contactInfo && (
+                  <div className="mt-2 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-800">
+                    ✓ {msg.contactForm.contactInfo.type === 'line' ? 'LINE ID' : 
+                         msg.contactForm.contactInfo.type === 'email' ? 'メールアドレス' : 
+                         '電話番号'}: {msg.contactForm.contactInfo.value}
+                  </div>
+                )}
               </div>
             </div>
           ))}
