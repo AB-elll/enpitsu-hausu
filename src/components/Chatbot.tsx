@@ -10,12 +10,87 @@ interface Message {
   timestamp: Date;
 }
 
+interface ChatApiMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 const WELCOME_MESSAGE =
   'こんにちは！えんぴつはうすへようこそ 🎨\nノベルティ・販促品についてご質問があればお気軽にどうぞ！\n\n下のボタンからよくある質問を選ぶか、自由にメッセージを入力してください。';
+
+const MAX_MESSAGES_PER_SESSION = 50;
+const SESSION_KEY = 'enpitsu-chat-history';
 
 let messageCounter = 0;
 function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${++messageCounter}`;
+}
+
+function loadHistory(): ChatApiMessage[] {
+  try {
+    const saved = sessionStorage.getItem(SESSION_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(history: ChatApiMessage[]) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(history));
+  } catch {
+    // ignore
+  }
+}
+
+async function fetchAIResponse(
+  history: ChatApiMessage[],
+  onChunk: (text: string) => void,
+): Promise<string | null> {
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history }),
+    });
+
+    if (!res.ok) return null;
+
+    const reader = res.body?.getReader();
+    if (!reader) return null;
+
+    const decoder = new TextDecoder();
+    let full = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.text) {
+            full += parsed.text;
+            onChunk(full);
+          }
+        } catch {
+          // skip
+        }
+      }
+    }
+
+    return full || null;
+  } catch {
+    return null;
+  }
 }
 
 export default function Chatbot() {
@@ -25,10 +100,28 @@ export default function Chatbot() {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
+  const [messageCount, setMessageCount] = useState(0);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
+  const historyRef = useRef<ChatApiMessage[]>([]);
+
+  // Load history on mount
+  useEffect(() => {
+    historyRef.current = loadHistory();
+    setMessageCount(historyRef.current.filter((m) => m.role === 'user').length);
+  }, []);
+
+  // Check AI availability once
+  useEffect(() => {
+    if (aiAvailable !== null) return;
+    fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [] }) })
+      .then((r) => setAiAvailable(r.status !== 404))
+      .catch(() => setAiAvailable(false));
+  }, [aiAvailable]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -42,7 +135,6 @@ export default function Chatbot() {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
 
-  // Escape key to close
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
@@ -52,7 +144,7 @@ export default function Chatbot() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  const addBotReply = useCallback((text: string) => {
+  const addBotReplyFallback = useCallback((text: string) => {
     setIsTyping(true);
     setTimeout(() => {
       setMessages((prev) => [
@@ -63,7 +155,60 @@ export default function Chatbot() {
     }, 500 + Math.random() * 400);
   }, []);
 
-  // Map quick question IDs directly to faqData indices
+  const sendToAI = useCallback(async (userText: string) => {
+    if (messageCount >= MAX_MESSAGES_PER_SESSION) {
+      addBotReplyFallback(
+        'セッションのメッセージ上限に達しました 🙇\n\n詳しくは [お問い合わせフォーム](/contact) よりご連絡ください。\n📞 03-3745-8421（平日9:00〜18:00）',
+      );
+      return;
+    }
+
+    historyRef.current.push({ role: 'user', content: userText });
+    saveHistory(historyRef.current);
+    setMessageCount((c) => c + 1);
+
+    const botMsgId = generateId('bot');
+    setIsTyping(true);
+
+    const result = await fetchAIResponse(historyRef.current, (streamedText) => {
+      setIsTyping(false);
+      setIsStreaming(true);
+      setMessages((prev) => {
+        const existing = prev.find((m) => m.id === botMsgId);
+        if (existing) {
+          return prev.map((m) => (m.id === botMsgId ? { ...m, text: streamedText } : m));
+        }
+        return [...prev, { id: botMsgId, role: 'bot' as const, text: streamedText, timestamp: new Date() }];
+      });
+    });
+
+    setIsTyping(false);
+    setIsStreaming(false);
+
+    if (result) {
+      historyRef.current.push({ role: 'assistant', content: result });
+      saveHistory(historyRef.current);
+    } else {
+      // Fallback to rule-based
+      const match = findAnswer(userText);
+      const fallbackText = match
+        ? match.answer
+        : 'すみません、ただいまAIアシスタントに接続できません 🙇\n\n[お問い合わせフォーム](/contact) よりお気軽にご連絡ください。\n📞 03-3745-8421（平日9:00〜18:00）';
+
+      setMessages((prev) => {
+        const existing = prev.find((m) => m.id === botMsgId);
+        if (existing) {
+          return prev.map((m) => (m.id === botMsgId ? { ...m, text: fallbackText } : m));
+        }
+        return [...prev, { id: botMsgId, role: 'bot' as const, text: fallbackText, timestamp: new Date() }];
+      });
+
+      // Remove the user message from history since AI didn't process it
+      historyRef.current.pop();
+      saveHistory(historyRef.current);
+    }
+  }, [messageCount, addBotReplyFallback]);
+
   const quickQuestionFaqMap: Record<string, number> = {
     delivery: 0,
     estimate: 1,
@@ -82,21 +227,27 @@ export default function Chatbot() {
 
       const faq = faqData[faqIndex];
       const q = quickQuestions.find((qq) => qq.id === id);
+      const questionText = q?.label ?? faq.question;
 
       setMessages((prev) => [
         ...prev,
-        { id: generateId('user'), role: 'user', text: q?.label ?? faq.question, timestamp: new Date() },
+        { id: generateId('user'), role: 'user', text: questionText, timestamp: new Date() },
       ]);
       setShowQuickQuestions(false);
-      addBotReply(faq.answer);
+
+      if (aiAvailable) {
+        sendToAI(questionText);
+      } else {
+        addBotReplyFallback(faq.answer);
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [addBotReply],
+    [addBotReplyFallback, sendToAI, aiAvailable],
   );
 
   const handleSend = useCallback(() => {
     const trimmed = input.trim();
-    if (!trimmed) return;
+    if (!trimmed || isStreaming) return;
 
     setMessages((prev) => [
       ...prev,
@@ -105,15 +256,20 @@ export default function Chatbot() {
     setInput('');
     setShowQuickQuestions(false);
 
-    const match = findAnswer(trimmed);
-    if (match) {
-      addBotReply(match.answer);
+    if (aiAvailable) {
+      sendToAI(trimmed);
     } else {
-      addBotReply(
-        'すみません、ご質問の内容を特定できませんでした 🙇\n\n詳しくは [お問い合わせフォーム](/contact) よりお気軽にご連絡ください。\n\n📞 お電話でもお気軽にどうぞ：**03-3745-8421**（平日9:00〜18:00）',
-      );
+      // Fallback to rule-based
+      const match = findAnswer(trimmed);
+      if (match) {
+        addBotReplyFallback(match.answer);
+      } else {
+        addBotReplyFallback(
+          'すみません、ご質問の内容を特定できませんでした 🙇\n\n詳しくは [お問い合わせフォーム](/contact) よりお気軽にご連絡ください。\n\n📞 お電話でもお気軽にどうぞ：**03-3745-8421**（平日9:00〜18:00）',
+        );
+      }
     }
-  }, [input, addBotReply]);
+  }, [input, isStreaming, aiAvailable, sendToAI, addBotReplyFallback]);
 
   const handleInputKeyDown = useCallback(
     (e: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -127,33 +283,27 @@ export default function Chatbot() {
 
   const renderMarkdown = (text: string) => {
     return text.split('\n').map((line, i) => {
-      // Parse bold and links into React elements (no dangerouslySetInnerHTML)
       const parts: React.ReactNode[] = [];
       let remaining = line;
       let keyIdx = 0;
 
       while (remaining.length > 0) {
-        // Find the next bold or link pattern
         const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
         const linkMatch = remaining.match(/\[(.+?)\]\((.+?)\)/);
 
-        // Determine which comes first
         const boldIdx = boldMatch?.index ?? Infinity;
         const linkIdx = linkMatch?.index ?? Infinity;
 
         if (boldIdx === Infinity && linkIdx === Infinity) {
-          // No more patterns
           parts.push(remaining);
           break;
         }
 
         if (boldIdx <= linkIdx && boldMatch) {
-          // Bold comes first
           if (boldIdx > 0) parts.push(remaining.slice(0, boldIdx));
           parts.push(<strong key={`b${keyIdx++}`}>{boldMatch[1]}</strong>);
           remaining = remaining.slice(boldIdx + boldMatch[0].length);
         } else if (linkMatch) {
-          // Link comes first
           if (linkIdx > 0) parts.push(remaining.slice(0, linkIdx));
           parts.push(
             <a
@@ -222,7 +372,7 @@ export default function Chatbot() {
             ✏️
           </div>
           <div className="flex-1">
-            <div className="text-sm font-bold">えんぴつはうす</div>
+            <div className="text-sm font-bold">えんぴつくん {aiAvailable ? '🤖' : ''}</div>
             <div className="text-xs opacity-80">ノベルティのご相談はこちら</div>
           </div>
           <button
@@ -305,13 +455,14 @@ export default function Chatbot() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleInputKeyDown}
-              placeholder="メッセージを入力..."
+              placeholder={isStreaming ? '応答中...' : 'メッセージを入力...'}
               className="flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
               autoComplete="off"
+              disabled={isStreaming}
             />
             <button
               onClick={handleSend}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isStreaming}
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white transition-all hover:bg-primary-dark disabled:opacity-40 disabled:hover:bg-primary active:scale-95"
               aria-label="送信"
             >
