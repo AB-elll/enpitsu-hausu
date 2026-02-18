@@ -1,10 +1,42 @@
 import Link from 'next/link';
 import BreadcrumbNav from './BreadcrumbNav';
 import { ProductDetail, getRelatedProducts } from '@/lib/products';
+import { SITE_URL, COMPANY_TEL } from '@/lib/constants';
 
 interface Props {
   product: ProductDetail;
   categoryHref: string;
+}
+
+function ProductJsonLd({ product, categoryHref }: { product: ProductDetail; categoryHref: string }) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.longDescription,
+    category: product.categoryLabel,
+    url: `${SITE_URL}/products/${product.category}/${product.slug}`,
+    brand: {
+      '@type': 'Organization',
+      name: 'えんぴつはうす',
+    },
+    ...(product.priceTable.length > 0 && product.priceTable[0].unitPrice.startsWith('¥') && {
+      offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'JPY',
+        lowPrice: product.priceTable[product.priceTable.length - 1].unitPrice.replace(/[^0-9]/g, ''),
+        highPrice: product.priceTable[0].unitPrice.replace(/[^0-9]/g, ''),
+        offerCount: product.priceTable.length,
+      },
+    }),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
 }
 
 export default function ProductDetailPage({ product, categoryHref }: Props) {
@@ -12,6 +44,7 @@ export default function ProductDetailPage({ product, categoryHref }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <ProductJsonLd product={product} categoryHref={categoryHref} />
       <BreadcrumbNav
         items={[
           { label: '商品一覧', href: '/products' },
@@ -93,12 +126,12 @@ export default function ProductDetailPage({ product, categoryHref }: Props) {
       {/* Specs Table */}
       <section className="mt-14">
         <h2 className="text-2xl font-bold text-text mb-6">商品仕様</h2>
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white rounded-2xl shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[400px]">
             <tbody>
               {product.specs.map((spec, i) => (
                 <tr key={spec.label} className={i % 2 === 0 ? 'bg-white' : 'bg-surface/50'}>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-text-secondary w-1/3 border-b border-border">
+                  <th scope="row" className="px-6 py-4 text-left text-sm font-medium text-text-secondary w-1/3 border-b border-border">
                     {spec.label}
                   </th>
                   <td className="px-6 py-4 text-sm text-text border-b border-border">{spec.value}</td>
@@ -113,13 +146,13 @@ export default function ProductDetailPage({ product, categoryHref }: Props) {
       <section className="mt-14">
         <h2 className="text-2xl font-bold text-text mb-2">価格表</h2>
         <p className="text-text-secondary text-sm mb-6">※ 表示価格は税別・1個あたりの参考価格です。正確なお見積もりはお問い合わせください。</p>
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white rounded-2xl shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[400px]">
             <thead>
               <tr className="text-left" style={{ backgroundColor: product.categoryColor }}>
-                <th className="px-6 py-3.5 text-sm font-medium text-white">数量</th>
-                <th className="px-6 py-3.5 text-sm font-medium text-white">単価</th>
-                <th className="px-6 py-3.5 text-sm font-medium text-white">合計</th>
+                <th scope="col" className="px-6 py-3.5 text-sm font-medium text-white">数量</th>
+                <th scope="col" className="px-6 py-3.5 text-sm font-medium text-white">単価</th>
+                <th scope="col" className="px-6 py-3.5 text-sm font-medium text-white">合計</th>
               </tr>
             </thead>
             <tbody>

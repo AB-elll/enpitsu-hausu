@@ -303,6 +303,12 @@ export default function OrderPage() {
               </div>
             )}
 
+            {errors.product && (
+              <p className="text-danger text-sm bg-danger/5 border border-danger/20 rounded-lg p-3" role="alert">
+                {errors.product}
+              </p>
+            )}
+
             <CustomerForm customer={customer} errors={errors} onChange={handleCustomerChange} />
 
             <div className="flex gap-3">
@@ -362,8 +368,11 @@ export default function OrderPage() {
             <p className="text-text-secondary text-lg mb-2">
               ご注文内容を確認のうえ、担当者よりご連絡いたします。
             </p>
-            <p className="text-text-secondary mb-8">
+            <p className="text-text-secondary mb-4">
               通常1〜2営業日以内にメールにてご連絡差し上げます。
+            </p>
+            <p className="text-sm text-text-secondary mb-8">
+              ※ メールソフトが起動しなかった場合は、お手数ですがお電話にてご連絡ください。
             </p>
 
             <div className="bg-white rounded-xl p-6 shadow-sm border border-border max-w-md mx-auto mb-8">

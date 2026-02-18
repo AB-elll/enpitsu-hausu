@@ -69,6 +69,7 @@ export const NAV_ITEMS = [
   { label: '商品一覧', href: '/products' },
   { label: 'ご注文の流れ', href: '/flow' },
   { label: '制作実績', href: '/works' },
+  { label: '納期カレンダー', href: '/delivery' },
   { label: '会社概要', href: '/about' },
   { label: 'お問い合わせ', href: '/contact' },
 ] as const;
@@ -149,9 +150,9 @@ export const HYGIENE_PRODUCTS: Product[] = [
 ];
 
 export const TOWEL_PRODUCTS: Product[] = [
-  { id: 'twl-face', name: 'フェイスタオル', slug: 'face', category: 'towel', priceRange: '¥298〜', minLot: 50, deliveryDays: 10, description: '名入れ対応のフェイスタオル。粗品・記念品に。' },
-  { id: 'twl-hand', name: 'ハンドタオル', slug: 'hand', category: 'towel', priceRange: '¥158〜', minLot: 50, deliveryDays: 10, description: '持ち運びに便利なハンドタオル。名入れ対応。' },
-  { id: 'twl-sports', name: 'スポーツタオル', slug: 'sports', category: 'towel', priceRange: '¥398〜', minLot: 50, deliveryDays: 10, description: 'スポーツイベント・大会記念に。マフラータオル。' },
-  { id: 'twl-bath', name: 'バスタオル', slug: 'bath', category: 'towel', priceRange: '¥780〜', minLot: 30, deliveryDays: 14, description: '高級感のあるバスタオル。名入れで特別なギフトに。' },
+  { id: 'twl-face', name: 'フェイスタオル', slug: 'face', category: 'towel', priceRange: '¥398〜', minLot: 50, deliveryDays: 10, description: '名入れ対応のフェイスタオル。粗品・記念品に。' },
+  { id: 'twl-hand', name: 'ハンドタオル', slug: 'hand', category: 'towel', priceRange: '¥198〜', minLot: 50, deliveryDays: 10, description: '持ち運びに便利なハンドタオル。名入れ対応。' },
+  { id: 'twl-sports', name: 'スポーツタオル', slug: 'sports', category: 'towel', priceRange: '¥498〜', minLot: 50, deliveryDays: 10, description: 'スポーツイベント・大会記念に。マフラータオル。' },
+  { id: 'twl-bath', name: 'バスタオル', slug: 'bath', category: 'towel', priceRange: '¥1,280〜', minLot: 30, deliveryDays: 14, description: '高級感のあるバスタオル。名入れで特別なギフトに。' },
   { id: 'twl-imprint', name: '名入れ商品全般', slug: 'imprint', category: 'towel', priceRange: '要見積', minLot: 10, deliveryDays: 14, description: 'タオル以外も含む名入れ商品の総合案内。' },
 ];

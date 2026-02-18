@@ -23,7 +23,7 @@ export function validateCustomer(customer: CustomerInfo): FormErrors {
   const e: FormErrors = {};
   if (!customer.name.trim()) e.name = '担当者名は必須です';
   if (!customer.tel.trim()) e.tel = '電話番号は必須です';
-  else if (!/^[\d\-+()]{8,15}$/.test(customer.tel.replace(/\s/g, '')))
+  else if (!/^\+?\d[\d\-()]{6,13}\d$/.test(customer.tel.replace(/\s/g, '')))
     e.tel = '正しい電話番号を入力してください';
   if (!customer.email.trim()) e.email = 'メールアドレスは必須です';
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email))

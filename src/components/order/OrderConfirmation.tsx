@@ -54,6 +54,10 @@ export function OrderConfirmation({
               <dt className="text-text-secondary">数量</dt>
               <dd className="font-medium">{quantity.toLocaleString()}個</dd>
             </div>
+            <div className="flex justify-between py-1">
+              <dt className="text-text-secondary">単価</dt>
+              <dd className="font-medium font-price">{formatPrice(priceResult.unitPrice)}</dd>
+            </div>
             <div className="flex justify-between py-2 border-t border-border mt-2">
               <dt className="font-bold">合計金額（税抜）</dt>
               <dd className="font-price font-bold text-primary text-lg">

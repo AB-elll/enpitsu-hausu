@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { CATEGORIES, type CategoryId } from '@/lib/constants';
 import {
   getProductsByCategory,
@@ -19,11 +20,18 @@ type Step = 1 | 2 | 3;
 const STEP_LABELS = ['商品選択', 'オプション・数量', '見積もり結果'] as const;
 
 export default function EstimatePage() {
+  const router = useRouter();
+  const stepContentRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<Step>(1);
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ProductOption | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [selectedQuantity, setSelectedQuantity] = useState<Quantity>(100);
+
+  // Focus step content on step change for accessibility
+  useEffect(() => {
+    stepContentRef.current?.focus({ preventScroll: false });
+  }, [step]);
 
   const categoryProducts = useMemo(
     () => (selectedCategory ? getProductsByCategory(selectedCategory) : []),
@@ -62,7 +70,7 @@ export default function EstimatePage() {
       selectedOptions,
       quantity: selectedQuantity,
     });
-    window.location.href = `/enpitsu-hausu/order?${params}`;
+    router.push(`/order?${params}`);
   };
 
   const resetAll = () => {
@@ -76,7 +84,7 @@ export default function EstimatePage() {
   const handleStepClick = (s: number) => {
     if (s === 1) resetAll();
     else if (s === 2 && selectedProduct) setStep(2);
-    else if (s === 3 && selectedProduct) setStep(3);
+    else if (s === 3 && selectedProduct && priceResult) setStep(3);
   };
 
   const selectedCategoryData = CATEGORIES.find((c) => c.id === selectedCategory);
@@ -96,10 +104,10 @@ export default function EstimatePage() {
 
         {/* Step 1: Category & Product Selection */}
         {step === 1 && (
-          <div className="space-y-8">
+          <div className="space-y-8" ref={stepContentRef} tabIndex={-1}>
             <div>
-              <h2 className="text-xl font-bold text-text mb-4">カテゴリを選択</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <h2 className="text-xl font-bold text-text mb-4" id="category-heading">カテゴリを選択</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" role="group" aria-labelledby="category-heading">
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat.id}
@@ -170,7 +178,7 @@ export default function EstimatePage() {
 
         {/* Step 2: Options & Quantity */}
         {step === 2 && selectedProduct && (
-          <div className="space-y-8">
+          <div className="space-y-8" ref={stepContentRef} tabIndex={-1}>
             <div className="bg-white rounded-xl p-6 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -217,7 +225,7 @@ export default function EstimatePage() {
 
         {/* Step 3: Result */}
         {step === 3 && selectedProduct && priceResult && (
-          <div className="space-y-6">
+          <div className="space-y-6" ref={stepContentRef} tabIndex={-1}>
             <div className="bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-border">
               <h2 className="text-xl font-bold text-text mb-6 pb-4 border-b border-border">
                 お見積もり内容
