@@ -32,8 +32,12 @@ const MOCK_RESPONSES: MockResponse[] = [
     reply: 'カレンダーやうちわ、アクリルグッズなど豊富に取り揃えてます！📅 詳しくは[商品ページ](/enpitsu-hausu/products)をチェックしてみてくださいね✨',
   },
   {
-    keywords: ['価格', '値段', '見積', 'いくら', '料金', '費用', 'コスト'],
-    reply: 'お見積もりは無料です！💰 [自動見積もりページ](/enpitsu-hausu/estimate)で簡単に確認できますよ✨ お気軽にお試しくださいね！',
+    keywords: ['価格', '値段', '見積もり', '見積', 'いくら', '料金', '費用', 'コスト', 'おいくら'],
+    reply: 'お見積もりのご相談ですね！💰\n\n🔍 [自動見積もりページ](/enpitsu-hausu/estimate)で簡単に概算がチェックできます\n📞 詳しいご相談は：**03-3745-8421**（平日9:00〜18:00）\n✉️ [お問い合わせフォーム](/enpitsu-hausu/contact)からも承ります\n\nお気軽にどうぞ！✨',
+  },
+  {
+    keywords: ['注文', '購入', '買いたい', 'オーダー', '発注', '申し込み', '頼みたい'],
+    reply: 'ご注文ありがとうございます！🎉\n\n📝 [注文フォーム](/enpitsu-hausu/order)から簡単にお申し込みいただけます\n📞 お電話でのご注文：**03-3745-8421**（平日9:00〜18:00）\n\nご不明な点があればお気軽にお声かけくださいね✨',
   },
   {
     keywords: ['納期', 'いつ届く', '届く', '日数', '急ぎ', '特急', '発送'],
@@ -54,9 +58,9 @@ const MOCK_RESPONSES: MockResponse[] = [
 ];
 
 const MOCK_DEFAULT_REPLIES = [
-  'えんぴつくんはまだお勉強中です！📚 近日中にもっと賢くなるので楽しみにしててくださいね！お急ぎの場合は[お問い合わせフォーム](/enpitsu-hausu/contact)からどうぞ✉️',
-  'うーん、ちょっと難しい質問ですね🤔 [お問い合わせフォーム](/enpitsu-hausu/contact)で詳しくご相談いただけると嬉しいです！',
-  'その件はえんぴつくんにはまだ難しいです…📝 でも[お問い合わせ](/enpitsu-hausu/contact)いただければスタッフが丁寧にお答えしますよ！✨',
+  'えんぴつくんはまだお勉強中です！📚 でも以下でお手伝いできるかも！\n\n💰 [見積もり](/enpitsu-hausu/estimate)\n📝 [注文フォーム](/enpitsu-hausu/order)\n📞 **03-3745-8421**（平日9:00〜18:00）\n✉️ [お問い合わせ](/enpitsu-hausu/contact)',
+  'うーん、ちょっと難しい質問ですね🤔\n\nこちらからご相談いただけると嬉しいです！\n📞 **03-3745-8421**（平日9:00〜18:00）\n✉️ [お問い合わせフォーム](/enpitsu-hausu/contact)',
+  'その件はえんぴつくんにはまだ難しいです…📝\n\nでもスタッフが丁寧にお答えします！\n📞 **03-3745-8421**（平日9:00〜18:00）\n✉️ [お問い合わせ](/enpitsu-hausu/contact)',
 ];
 
 function getMockResponse(userText: string): string {
@@ -164,18 +168,11 @@ export default function Chatbot() {
     setMessageCount(historyRef.current.filter((m) => m.role === 'user').length);
   }, []);
 
-  // Check AI availability once
+  // Always use mock mode for static site (GitHub Pages)
   useEffect(() => {
     if (aiAvailable !== null) return;
-    fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [] }) })
-      .then((r) => {
-        setAiAvailable(r.status !== 404);
-        setMessages([{ id: 'welcome', role: 'bot', text: r.status !== 404 ? WELCOME_MESSAGE_AI : WELCOME_MESSAGE_MOCK, timestamp: new Date() }]);
-      })
-      .catch(() => {
-        setAiAvailable(false);
-        setMessages([{ id: 'welcome', role: 'bot', text: WELCOME_MESSAGE_MOCK, timestamp: new Date() }]);
-      });
+    setAiAvailable(false);
+    setMessages([{ id: 'welcome', role: 'bot', text: WELCOME_MESSAGE_MOCK, timestamp: new Date() }]);
   }, [aiAvailable]);
 
   const scrollToBottom = useCallback(() => {
@@ -213,7 +210,7 @@ export default function Chatbot() {
   const sendToAI = useCallback(async (userText: string) => {
     if (messageCount >= MAX_MESSAGES_PER_SESSION) {
       addBotReplyFallback(
-        'セッションのメッセージ上限に達しました 🙇\n\n詳しくは [お問い合わせフォーム](/contact) よりご連絡ください。\n📞 03-3745-8421（平日9:00〜18:00）',
+        'セッションのメッセージ上限に達しました 🙇\n\n詳しくは [お問い合わせフォーム](/enpitsu-hausu/contact) よりご連絡ください。\n📞 03-3745-8421（平日9:00〜18:00）',
       );
       return;
     }
