@@ -387,7 +387,7 @@ export default function Chatbot() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         ) : (
-          <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/enpitsu-hausu'}/enpitsukun.png`} alt="えんぴつくん" width={40} height={40} className="rounded-full" />
+          <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/enpitsu-hausu'}/pencil-icon.png`} alt="えんぴつくん" width={44} height={56} className="object-contain" />
         )}
       </button>
 
