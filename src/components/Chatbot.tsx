@@ -376,7 +376,7 @@ export default function Chatbot() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`fixed bottom-6 right-6 z-50 flex h-16 w-16 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 ${
-          isOpen ? 'bg-text rotate-90' : 'bg-white border-2 border-primary'
+          isOpen ? 'bg-text rotate-90' : 'bg-transparent'
         }`}
         aria-label={isOpen ? 'チャットを閉じる' : 'チャットを開く'}
         aria-expanded={isOpen}
@@ -387,7 +387,7 @@ export default function Chatbot() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         ) : (
-          <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/enpitsu-hausu'}/pencil-icon.png`} alt="えんぴつくん" width={44} height={56} className="object-contain" />
+          <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/enpitsu-hausu'}/pencil-icon.png`} alt="えんぴつくん" width={56} height={56} className="object-contain drop-shadow-lg" />
         )}
       </button>
 
