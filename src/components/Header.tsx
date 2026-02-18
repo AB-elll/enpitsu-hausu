@@ -28,7 +28,7 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <Image
-              src="/logo-horizontal.png"
+              src="/enpitsu-hausu/logo-horizontal.png"
               alt="えんぴつはうす"
               width={200}
               height={40}

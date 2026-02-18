@@ -18,7 +18,7 @@ export default function AcrylicPage() {
         description="フルカラー印刷のアクリルグッズ。推し活・ノベルティ・記念品に人気のアイテム。"
         color="#8B5CF6"
         icon="✨"
-        image="/images/category-acrylic.jpg"
+        image="/enpitsu-hausu/images/category-acrylic.jpg"
       />
       <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {ACRYLIC_PRODUCTS.map((product) => (

@@ -18,7 +18,7 @@ export default function CalendarPage() {
         description="壁掛け・卓上・ポスター・ポケットなど全54種。オフセット印刷の高品質オリジナルカレンダー。"
         color="#2563EB"
         icon="📅"
-        image="/images/category-calendar.jpg"
+        image="/enpitsu-hausu/images/category-calendar.jpg"
       />
       <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {CALENDAR_PRODUCTS.map((product) => (

@@ -36,7 +36,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Company Info */}
           <div className="lg:col-span-1">
-            <Image src="/logo-horizontal.png" alt={SITE_NAME} width={180} height={36} className="h-8 w-auto mb-4 brightness-0 invert" />
+            <Image src="/enpitsu-hausu/logo-horizontal.png" alt={SITE_NAME} width={180} height={36} className="h-8 w-auto mb-4 brightness-0 invert" />
             <p className="text-sm leading-relaxed mb-4">{COMPANY_ADDRESS}</p>
             <div className="space-y-1 text-sm">
               <p>TEL: <a href={`tel:${COMPANY_TEL.replace(/-/g, '')}`} className="hover:text-white transition-colors">{COMPANY_TEL}</a></p>
@@ -72,7 +72,7 @@ export default function Footer() {
 
           {/* Mascot */}
           <div className="flex flex-col items-center lg:items-start">
-            <Image src="/enpitsukun.png" alt="えんぴつくん" width={120} height={120} className="mb-4" />
+            <Image src="/enpitsu-hausu/enpitsukun.png" alt="えんぴつくん" width={120} height={120} className="mb-4" />
             <p className="text-sm text-center lg:text-left">えんぴつくんが<br />ノベルティ選びをお手伝い！</p>
           </div>
         </div>

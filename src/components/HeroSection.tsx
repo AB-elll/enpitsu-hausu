@@ -6,7 +6,7 @@ export default function HeroSection() {
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: 'url(/hero-bg.jpg)' }}
+        style={{ backgroundImage: 'url(/enpitsu-hausu/hero-bg.jpg)' }}
       />
       {/* Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 via-blue-800/70 to-purple-900/80" />

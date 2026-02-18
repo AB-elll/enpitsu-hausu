@@ -14,7 +14,7 @@ export const CATEGORIES = [
     color: '#2563EB',
     icon: '📅',
     href: '/products/calendar',
-    image: '/images/category-calendar.jpg',
+    image: '/enpitsu-hausu/images/category-calendar.jpg',
   },
   {
     id: 'uchiwa',
@@ -23,7 +23,7 @@ export const CATEGORIES = [
     color: '#22C55E',
     icon: '🪭',
     href: '/products/uchiwa',
-    image: '/images/category-uchiwa.jpg',
+    image: '/enpitsu-hausu/images/category-uchiwa.jpg',
   },
   {
     id: 'acrylic',
@@ -32,7 +32,7 @@ export const CATEGORIES = [
     color: '#8B5CF6',
     icon: '✨',
     href: '/products/acrylic',
-    image: '/images/category-acrylic.jpg',
+    image: '/enpitsu-hausu/images/category-acrylic.jpg',
   },
   {
     id: 'seal',
@@ -41,7 +41,7 @@ export const CATEGORIES = [
     color: '#F97316',
     icon: '🏷️',
     href: '/products/seal',
-    image: '/images/category-seal.jpg',
+    image: '/enpitsu-hausu/images/category-seal.jpg',
   },
   {
     id: 'hygiene',
@@ -50,7 +50,7 @@ export const CATEGORIES = [
     color: '#06B6D4',
     icon: '🧴',
     href: '/products/hygiene',
-    image: '/images/category-hygiene.jpg',
+    image: '/enpitsu-hausu/images/category-hygiene.jpg',
   },
   {
     id: 'towel',
@@ -59,7 +59,7 @@ export const CATEGORIES = [
     color: '#EC4899',
     icon: '🧣',
     href: '/products/towel',
-    image: '/images/category-towel.jpg',
+    image: '/enpitsu-hausu/images/category-towel.jpg',
   },
 ] as const;
 
