@@ -7,7 +7,7 @@ export function generateStaticParams() {
   return galleryItems.map((item) => ({ id: item.id }));
 }
 
-export function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   // We need to use a sync approach for static export
   return {
     title: '制作実績詳細',
