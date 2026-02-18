@@ -375,19 +375,26 @@ export default function Chatbot() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 z-50 flex h-16 w-16 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 ${
-          isOpen ? 'bg-text rotate-90' : 'bg-transparent'
+        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 ${
+          isOpen ? '' : ''
         }`}
         aria-label={isOpen ? 'チャットを閉じる' : 'チャットを開く'}
         aria-expanded={isOpen}
         aria-controls="chatbot-window"
       >
         {isOpen ? (
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-600 shadow-lg">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="2" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
         ) : (
-          <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/enpitsu-hausu'}/pencil-icon.png`} alt="えんぴつくん" width={56} height={56} className="object-contain drop-shadow-lg" />
+          <>
+            <span className="rounded-full bg-white px-3 py-1.5 text-sm font-bold text-primary shadow-md">チャットで相談</span>
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg">
+              <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/enpitsu-hausu'}/pencil-icon.png`} alt="えんぴつくん" width={40} height={40} className="object-contain" />
+            </div>
+          </>
         )}
       </button>
 
