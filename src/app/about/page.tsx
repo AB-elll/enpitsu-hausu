@@ -1,10 +1,10 @@
 import BreadcrumbNav from '@/components/BreadcrumbNav';
-import { COMPANY_TEL, COMPANY_FAX, COMPANY_EMAIL, COMPANY_ADDRESS } from '@/lib/constants';
+import { COMPANY_TEL, COMPANY_EMAIL, COMPANY_ADDRESS, COMPANY_HQ_ADDRESS } from '@/lib/constants';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: '会社概要',
-  description: 'えんぴつはうすの会社概要。東京都大田区のノベルティ・販促品企画制作会社。',
+  description: 'えんぴつはうすの会社概要。ノベルティグッズ類の企画・販売、シール印刷。',
 };
 
 export default function AboutPage() {
@@ -18,15 +18,16 @@ export default function AboutPage() {
         <table className="w-full">
           <tbody className="divide-y divide-border">
             {[
-              ['会社名', '株式会社 えんぴつはうす'],
-              ['所在地', COMPANY_ADDRESS],
+              ['事業者名', '株式会社KEA工房 高松事業所'],
+              ['所在地（高松事業所）', COMPANY_ADDRESS],
+              ['本社', COMPANY_HQ_ADDRESS],
               ['電話番号', COMPANY_TEL],
-              ['FAX番号', COMPANY_FAX],
               ['メール', COMPANY_EMAIL],
-              ['設立', '1998年'],
-              ['代表者', '代表取締役'],
-              ['事業内容', 'オリジナルノベルティ・販促品の企画・デザイン・制作・販売\nカレンダー、うちわ、アクリルグッズ、シール、衛生用品、タオル等'],
-              ['取引銀行', 'みずほ銀行 大森支店'],
+              ['URL', 'http://www.en-pitsu.com'],
+              ['資本金', '3,765万円'],
+              ['WEB責任者', '安東 弘志'],
+              ['事業内容', 'ノベルティグッズ類の企画・販売、シール印刷、調剤薬局の展開'],
+              ['取引銀行', '楽天銀行 第一営業支店'],
             ].map(([label, value]) => (
               <tr key={label} className="flex flex-col sm:table-row">
                 <th className="px-6 py-4 text-left text-sm font-bold text-text bg-surface sm:w-40 whitespace-nowrap">
@@ -47,7 +48,7 @@ export default function AboutPage() {
         <div className="bg-surface rounded-2xl h-80 flex items-center justify-center text-text-secondary">
           <div className="text-center">
             <div className="text-4xl mb-3">📍</div>
-            <p>JR大森駅 東口より徒歩3分</p>
+            <p>香川県高松市中野町2丁目2-6</p>
           </div>
         </div>
       </div>

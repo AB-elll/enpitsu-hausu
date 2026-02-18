@@ -226,10 +226,10 @@ export default function ProductDetailPage({ product, categoryHref }: Props) {
             無料お見積もり
           </Link>
           <a
-            href="tel:03-5765-5765"
+            href="tel:087-884-3724"
             className="px-8 py-3.5 bg-primary text-white font-medium rounded-xl hover:bg-primary-dark transition-colors text-lg"
           >
-            📞 03-5765-5765
+            📞 087-884-3724
           </a>
         </div>
       </section>

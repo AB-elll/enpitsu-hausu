@@ -1,10 +1,10 @@
 export const SITE_NAME = 'えんぴつはうす';
 export const SITE_DESCRIPTION = 'オリジナルカレンダー・うちわ・アクリルグッズ・シールなど、ノベルティ・販促品の企画制作。小ロット100個から対応。';
 export const SITE_URL = 'https://www.en-pitsu.com';
-export const COMPANY_TEL = '03-5765-5765';
-export const COMPANY_FAX = '03-5765-5767';
+export const COMPANY_TEL = '087-884-3724';
 export const COMPANY_EMAIL = 'info@en-pitsu.com';
-export const COMPANY_ADDRESS = '〒143-0016 東京都大田区大森北1-17-2 大森についてのビル4F';
+export const COMPANY_ADDRESS = '〒760-0014 香川県高松市中野町2丁目2-6';
+export const COMPANY_HQ_ADDRESS = '〒371-0816 群馬県前橋市大友町2丁目1-4';
 
 export const CATEGORIES = [
   {

@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     default: 'えんぴつはうす | オリジナルノベルティ・販促品の企画制作',
     template: '%s | えんぴつはうす',
   },
-  description: 'オリジナルカレンダー・うちわ・アクリルグッズ・シールなど、ノベルティ・販促品の企画制作。小ロット100個から対応。東京都大田区。',
+  description: 'オリジナルカレンダー・うちわ・アクリルグッズ・シールなど、ノベルティ・販促品の企画制作。小ロット100個から対応。香川県高松市。',
   openGraph: {
     type: 'website',
     locale: 'ja_JP',

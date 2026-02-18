@@ -377,7 +377,7 @@ export default function OrderPage() {
 
             <div className="bg-white rounded-xl p-6 shadow-sm border border-border max-w-md mx-auto mb-8">
               <p className="text-sm text-text-secondary">お問い合わせはお気軽に</p>
-              <p className="font-bold text-primary text-xl mt-1">📞 03-5765-5765</p>
+              <p className="font-bold text-primary text-xl mt-1">📞 087-884-3724</p>
               <p className="text-sm text-text-secondary mt-1">平日 9:00〜18:00</p>
             </div>
 

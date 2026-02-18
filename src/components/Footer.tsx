@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { SITE_NAME, COMPANY_TEL, COMPANY_FAX, COMPANY_EMAIL, COMPANY_ADDRESS, CATEGORIES } from '@/lib/constants';
+import { SITE_NAME, COMPANY_TEL, COMPANY_EMAIL, COMPANY_ADDRESS, CATEGORIES } from '@/lib/constants';
 
 export default function Footer() {
   return (
@@ -40,7 +40,6 @@ export default function Footer() {
             <p className="text-sm leading-relaxed mb-4">{COMPANY_ADDRESS}</p>
             <div className="space-y-1 text-sm">
               <p>TEL: <a href={`tel:${COMPANY_TEL.replace(/-/g, '')}`} className="hover:text-white transition-colors">{COMPANY_TEL}</a></p>
-              <p>FAX: {COMPANY_FAX}</p>
               <p>Email: <a href={`mailto:${COMPANY_EMAIL}`} className="hover:text-white transition-colors">{COMPANY_EMAIL}</a></p>
             </div>
           </div>
