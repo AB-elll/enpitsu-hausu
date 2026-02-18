@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import Chatbot from '@/components/Chatbot';
+import ChatEstimate from '@/components/ChatEstimate';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -18,7 +18,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       <Header />
       <main>{children}</main>
       <Footer />
-      <Chatbot />
+      <ChatEstimate />
     </>
   );
 }
