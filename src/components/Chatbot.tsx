@@ -375,8 +375,8 @@ export default function Chatbot() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 ${
-          isOpen ? 'bg-text rotate-90' : 'bg-primary hover:bg-primary-dark'
+        className={`fixed bottom-6 right-6 z-50 flex h-16 w-16 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 ${
+          isOpen ? 'bg-text rotate-90' : 'bg-white border-2 border-primary'
         }`}
         aria-label={isOpen ? 'チャットを閉じる' : 'チャットを開く'}
         aria-expanded={isOpen}
@@ -387,12 +387,7 @@ export default function Chatbot() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         ) : (
-          <svg width="24" height="24" fill="white" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z" />
-            <circle cx="8" cy="10" r="1" />
-            <circle cx="12" cy="10" r="1" />
-            <circle cx="16" cy="10" r="1" />
-          </svg>
+          <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || '/enpitsu-hausu'}/enpitsukun.png`} alt="えんぴつくん" width={40} height={40} className="rounded-full" />
         )}
       </button>
 
