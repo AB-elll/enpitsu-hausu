@@ -410,8 +410,8 @@ export default function Chatbot() {
             ✏️
           </div>
           <div className="flex-1">
-            <div className="text-sm font-bold">えんぴつくん {aiAvailable ? '🤖' : ''}</div>
-            <div className="text-xs opacity-80">ノベルティのご相談はこちら</div>
+            <div className="text-sm font-bold">チャットモード</div>
+            <div className="text-xs opacity-80">えんぴつくんがお答えします</div>
           </div>
           <button
             onClick={() => setIsOpen(false)}
